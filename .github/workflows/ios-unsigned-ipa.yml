@@ -11,6 +11,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # SDL's CMakeLists asks for an old CMake; CMake 4 (on the runners) only
+  # configures it when told to accept that.
+  CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 jobs:
   build-ipa:
