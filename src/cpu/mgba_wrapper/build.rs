@@ -45,7 +45,7 @@ fn main() {
     println!("cargo:rerun-if-changed={}", profile.to_str().unwrap());
     if std::env::var_os("TOUCHHLE_PGO_GENERATE").is_some() {
         assert!(is_clang, "TOUCHHLE_PGO_GENERATE needs clang (set CC=clang)");
-        build.flag("-fprofile-instr-generate");
+        build.flag("-fprofile-instr-generate").define("TOUCHHLE_PGO_GENERATE", None);
         link_profile_runtime(&build);
     } else if is_clang && profile.exists() {
         build

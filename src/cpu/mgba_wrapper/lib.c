@@ -12,6 +12,14 @@
 
 #include "wrapper.h"
 
+#ifdef TOUCHHLE_PGO_GENERATE
+/* clang's driver pulls in the profiling runtime's start-up code, which
+ * writes the profile at exit, by linking with -u__llvm_profile_runtime.
+ * rustc does the linking here, so this reference does it instead. */
+extern int __llvm_profile_runtime;
+int *touchHLE_pgo_runtime_ref = &__llvm_profile_runtime;
+#endif
+
 /* ARMStep fetches through memory.activeRegion unconditionally -- there is no
  * callback path for instruction fetch, and a NULL region would dereference
  * NULL. touchHLE maps the whole 4GiB guest address space contiguously, so
