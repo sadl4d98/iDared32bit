@@ -308,6 +308,17 @@ fn glBlendFunc(env: &mut Environment, sfactor: GLenum, dfactor: GLenum) {
         gles.BlendFunc(sfactor, dfactor)
     })
 }
+fn glBlendFuncSeparateOES(
+    env: &mut Environment,
+    src_rgb: GLenum,
+    dst_rgb: GLenum,
+    src_alpha: GLenum,
+    dst_alpha: GLenum,
+) {
+    with_ctx_and_mem(env, |gles, _mem| unsafe {
+        gles.BlendFuncSeparateOES(src_rgb, dst_rgb, src_alpha, dst_alpha)
+    })
+}
 fn glBlendEquationOES(env: &mut Environment, mode: GLenum) {
     with_ctx_and_mem(env, |gles, _mem| unsafe { gles.BlendEquationOES(mode) })
 }
@@ -1509,6 +1520,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(glAlphaFuncx(_, _)),
     export_c_func!(glBlendFunc(_, _)),
     export_c_func!(glBlendEquationOES(_)),
+    export_c_func!(glBlendFuncSeparateOES(_, _, _, _)),
     export_c_func!(glColorMask(_, _, _, _)),
     export_c_func!(glClipPlanef(_, _)),
     export_c_func!(glClipPlanex(_, _)),

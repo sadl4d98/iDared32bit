@@ -1012,6 +1012,16 @@ impl GLES for GLES1OnGL2<'_> {
         assert!(functions.contains(&mode));
         gl21::BlendEquation(mode);
     }
+    unsafe fn BlendFuncSeparateOES(
+        &mut self,
+        src_rgb: GLenum,
+        dst_rgb: GLenum,
+        src_alpha: GLenum,
+        dst_alpha: GLenum,
+    ) {
+        // Same factors as BlendFunc, which checks them.
+        gl21::BlendFuncSeparate(src_rgb, dst_rgb, src_alpha, dst_alpha);
+    }
     unsafe fn ColorMask(
         &mut self,
         red: GLboolean,

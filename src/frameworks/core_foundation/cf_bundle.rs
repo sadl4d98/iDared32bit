@@ -23,6 +23,8 @@ const kCFBundleVersionKey: &str = "CFBundleVersion";
 const kCFBundleExecutableKey: &str = "CFBundleExecutable";
 
 pub const CONSTANTS: ConstantExports = &[
+    ("_kCFBundleIdentifierKey", HostConstant::NSString("CFBundleIdentifier")),
+    ("_kCFBundleNameKey", HostConstant::NSString("CFBundleName")),
     (
         "_kCFBundleVersionKey",
         HostConstant::NSString(kCFBundleVersionKey),

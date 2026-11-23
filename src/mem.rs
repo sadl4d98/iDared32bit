@@ -732,7 +732,13 @@ impl Mem {
         let iter = self
             .bytes_at(ptr.cast(), len * guest_size_of::<wchar_t>())
             .chunks(4)
-            .map(|chunk| char::from_u32(u32::from_le_bytes(chunk.try_into().unwrap())).unwrap());
+            .map(|chunk| {
+                let c = u32::from_le_bytes(chunk.try_into().unwrap());
+                char::from_u32(c).unwrap_or_else(|| {
+                    log!("Warning: invalid wide character {:#x} in string at {:?}", c, ptr);
+                    char::REPLACEMENT_CHARACTER
+                })
+            });
         String::from_iter(iter)
     }
 

@@ -18,6 +18,7 @@ pub mod ui_application;
 pub mod ui_bar_item;
 pub mod ui_color;
 pub mod ui_device;
+pub mod ui_document;
 pub mod ui_event;
 pub mod ui_font;
 pub mod ui_geometry;
@@ -45,6 +46,7 @@ pub const DYLIB: crate::dyld::HostDylib = crate::dyld::HostDylib {
         ui_application::CLASSES,
         ui_color::CLASSES,
         ui_device::CLASSES,
+        ui_document::CLASSES,
         ui_event::CLASSES,
         ui_font::CLASSES,
         ui_image::CLASSES,

@@ -118,6 +118,20 @@ pub const CLASSES: ClassExports = objc_classes! {
 // Pages are laid out at their own size, as with this off.
 - (())setScalesPageToFit:(bool)_scales {}
 
+// There's no JavaScript here. Apps mostly use this to read the user agent,
+// so that alone gets an answer: Mobile Safari's on iOS 6.1, the newest that
+// runs 32-bit apps that old. Anything else gets an empty string, as a script
+// with no result would.
+- (id)stringByEvaluatingJavaScriptFromString:(id)script { // NSString*
+    let script_str = to_rust_string(env, script).to_string();
+    if script_str.replace(' ', "").trim_end_matches(';') == "navigator.userAgent" {
+        get_static_str(env, "Mozilla/5.0 (iPhone; CPU iPhone OS 6_1 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Mobile/10B141")
+    } else {
+        log!("TODO: [(UIWebView*){:?} stringByEvaluatingJavaScriptFromString:{:?}] returning empty string", this, script_str);
+        get_static_str(env, "")
+    }
+}
+
 - (id)delegate {
     env.objc.borrow::<UIWebViewHostObject>(this).delegate
 }

@@ -30,7 +30,7 @@ pub mod ui_navigation_controller;
 pub mod ui_tab_bar_controller;
 
 #[derive(Default)]
-struct UIViewControllerHostObject {
+pub(crate) struct UIViewControllerHostObject {
     /// The root view.
     /// `UIView*`
     view: id,
@@ -202,6 +202,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     } else {
         view
     }
+}
+
+- (bool)isViewLoaded {
+    env.objc.borrow::<UIViewControllerHostObject>(this).view != nil
 }
 
 // Usually overridden by the application

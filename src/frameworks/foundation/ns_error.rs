@@ -111,6 +111,24 @@ pub const CLASSES: ClassExports = objc_classes! {
 };
 
 pub const CONSTANTS: ConstantExports = &[
+    ("_NSFilePathErrorKey", HostConstant::NSString("NSFilePath")),
+    ("_NSMachErrorDomain", HostConstant::NSString("NSMachErrorDomain")),
+    ("_NSPOSIXErrorDomain", HostConstant::NSString("NSPOSIXErrorDomain")),
+    ("_NSURLErrorFailingURLStringErrorKey", HostConstant::NSString("NSErrorFailingURLStringKey")),
+    ("_NSSQLiteErrorDomain", HostConstant::NSString("NSSQLiteErrorDomain")),
+    ("_NSSQLiteStoreType", HostConstant::NSString("SQLite")),
+    ("_NSInMemoryStoreType", HostConstant::NSString("InMemory")),
+    ("_kSecClass", HostConstant::NSString("class")),
+    ("_kSecClassGenericPassword", HostConstant::NSString("genp")),
+    ("_kSecAttrAccount", HostConstant::NSString("acct")),
+    ("_kSecAttrService", HostConstant::NSString("svce")),
+    ("_kSecAttrGeneric", HostConstant::NSString("gena")),
+    ("_kSecAttrAccessible", HostConstant::NSString("pdmn")),
+    ("_kSecAttrAccessibleWhenUnlocked", HostConstant::NSString("ak")),
+    ("_kSecMatchLimit", HostConstant::NSString("m_Limit")),
+    ("_kSecMatchLimitOne", HostConstant::NSString("m_LimitOne")),
+    ("_kSecReturnData", HostConstant::NSString("r_Data")),
+    ("_kSecValueData", HostConstant::NSString("v_Data")),
     (
         "_NSLocalizedDescriptionKey",
         HostConstant::NSString(NSLocalizedDescriptionKey),

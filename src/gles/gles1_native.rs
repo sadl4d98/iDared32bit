@@ -165,6 +165,15 @@ impl GLES for GLES1Native<'_> {
     unsafe fn BlendEquationOES(&mut self, mode: GLenum) {
         gles11::BlendEquationOES(mode);
     }
+    unsafe fn BlendFuncSeparateOES(
+        &mut self,
+        src_rgb: GLenum,
+        dst_rgb: GLenum,
+        src_alpha: GLenum,
+        dst_alpha: GLenum,
+    ) {
+        gles11::BlendFuncSeparateOES(src_rgb, dst_rgb, src_alpha, dst_alpha);
+    }
     unsafe fn ColorMask(
         &mut self,
         red: GLboolean,

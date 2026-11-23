@@ -8,7 +8,7 @@
 use crate::dyld::FunctionExports;
 use crate::export_c_func;
 use crate::libc::errno::set_errno;
-use crate::mem::MutPtr;
+use crate::mem::{ConstPtr, MutPtr};
 use crate::Environment;
 
 // TODO: struct definition
@@ -27,7 +27,14 @@ fn freeifaddrs(_env: &mut Environment, _ifp: MutPtr<ifaddrs>) {
     // TODO
 }
 
+/// From `net/if.h`. There are no network interfaces here (as with
+/// `getifaddrs`), so every name is unknown.
+fn if_nametoindex(_env: &mut Environment, _ifname: ConstPtr<u8>) -> u32 {
+    0
+}
+
 pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(if_nametoindex(_)),
     export_c_func!(getifaddrs(_)),
     export_c_func!(freeifaddrs(_)),
 ];

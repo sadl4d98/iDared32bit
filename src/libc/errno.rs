@@ -106,6 +106,28 @@ fn perror(env: &mut Environment, s: ConstPtr<u8>) {
     let _ = std::io::stderr().write_all(msg.as_bytes());
 }
 
+/// `gai_strerror` from `netdb.h`, here to share `strerror`'s cache (its
+/// codes are kept apart from errno values by being stored negated).
+fn gai_strerror(env: &mut Environment, ecode: i32) -> ConstPtr<u8> {
+    let key = -ecode - 1;
+    if let Some(&c_str) = env.libc_state.errno.strings_cache.get(&key) {
+        return c_str;
+    }
+    let str = match ecode {
+        1 => "Address family for hostname not supported",
+        2 => "Temporary failure in name resolution",
+        3 => "Invalid value for ai_flags",
+        4 => "Non-recoverable failure in name resolution",
+        5 => "ai_family not supported",
+        6 => "Memory allocation failure",
+        8 => "nodename nor servname provided, or not known",
+        _ => "Unknown error",
+    };
+    let c_str = env.mem.alloc_and_write_cstr(str.as_bytes()).cast_const();
+    env.libc_state.errno.strings_cache.insert(key, c_str);
+    c_str
+}
+
 fn strerror(env: &mut Environment, err_num: i32) -> ConstPtr<u8> {
     if let Some(&c_str) = env.libc_state.errno.strings_cache.get(&err_num) {
         c_str
@@ -153,4 +175,5 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(__error()),
     export_c_func!(perror(_)),
     export_c_func!(strerror(_)),
+    export_c_func!(gai_strerror(_)),
 ];

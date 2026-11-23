@@ -235,6 +235,20 @@ pub struct Dyld {
     non_lazy_host_functions: HashMap<&'static str, GuestFunction>,
 }
 
+/// Classes that arrived in iOS 7 or later, which apps built to also run on
+/// older versions only ever test for. ponytail: extend as games turn them up.
+const CLASSES_FROM_IOS_7: &[&str] = &[
+    "NSURLSession",
+    "NSURLSessionConfiguration",
+    "NSURLSessionTask",
+    "NSURLSessionDataTask",
+    "NSURLSessionDownloadTask",
+    "NSURLSessionUploadTask",
+    "GCController",
+    "GCGamepad",
+    "GCExtendedGamepad",
+];
+
 impl Dyld {
     /// We reserve this SVC ID for invoking the lazy linker.
     pub const SVC_LAZY_LINK: u32 = 0;
@@ -485,7 +499,17 @@ impl Dyld {
             // offset that should be applied to the external symbol's address.
             // It is often 0, but not always.
             let offset: u32 = mem.read(ptr_ptr).to_bits();
-            let target: ConstVoidPtr = if let Some(name) = name.strip_prefix("_OBJC_CLASS_$_") {
+            let class_name = name
+                .strip_prefix("_OBJC_CLASS_$_")
+                .or_else(|| name.strip_prefix("_OBJC_METACLASS_$_"));
+            let target: ConstVoidPtr = if class_name.is_some_and(|name| {
+                CLASSES_FROM_IOS_7.contains(&name) && ObjC::find_template(name).is_none()
+            }) {
+                // Apps that run on older iOS link these weakly and test for
+                // them (`[NSURLSession class] == nil`), as we're older.
+                log!("Linking class {} as nil: it's from iOS 7 and later", class_name.unwrap());
+                nil.cast().cast_const()
+            } else if let Some(name) = name.strip_prefix("_OBJC_CLASS_$_") {
                 objc.link_class(name, /* is_metaclass: */ false, mem)
                     .cast()
                     .cast_const()

@@ -313,6 +313,13 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (())scheduleLocalNotification:(id)local_notif { // UILocalNotification *
     log!("TODO: [(UIApplication*){:?} scheduleLocalNotification:{:?}", this, local_notif);
 }
+- (())cancelLocalNotification:(id)local_notif { // UILocalNotification *
+    log!("TODO: [(UIApplication*){:?} cancelLocalNotification:{:?}", this, local_notif);
+}
+// Nothing is ever scheduled, as scheduleLocalNotification: ignores them.
+- (id)scheduledLocalNotifications {
+    msg_class![env; NSArray array]
+}
 
 @end
 
@@ -577,6 +584,13 @@ const UIApplicationDidReceiveMemoryWarningNotification: &str =
 /// `UIApplicationLaunchOptionsKey` and `NSNotificationName` values.
 /// (Both types are strings)
 pub const CONSTANTS: ConstantExports = &[
+    (
+        "_UIBackgroundTaskInvalid",
+        HostConstant::Custom(|env| env.mem.alloc_and_write(0u32).cast().cast_const()),
+    ),
+    ("_UIApplicationLaunchOptionsLocalNotificationKey", HostConstant::NSString("UIApplicationLaunchOptionsLocalNotificationKey")),
+    ("_UILocalNotificationDefaultSoundName", HostConstant::NSString("UILocalNotificationDefaultSoundName")),
+    ("_UIDocumentStateChangedNotification", HostConstant::NSString("UIDocumentStateChangedNotification")),
     (
         "_UIApplicationDidFinishLaunchingNotification",
         HostConstant::NSString(UIApplicationDidFinishLaunchingNotification),

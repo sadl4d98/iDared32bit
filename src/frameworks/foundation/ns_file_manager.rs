@@ -36,6 +36,9 @@ pub const NSFileTypeDirectory: &str = "NSFileTypeDirectory";
 pub const NSFileTypeRegular: &str = "NSFileTypeRegular";
 
 pub const CONSTANTS: ConstantExports = &[
+    ("_NSFileCreationDate", HostConstant::NSString("NSFileCreationDate")),
+    ("_NSFilePosixPermissions", HostConstant::NSString("NSFilePosixPermissions")),
+    ("_NSURLIsExcludedFromBackupKey", HostConstant::NSString("NSURLIsExcludedFromBackupKey")),
     (
         "_NSFileModificationDate",
         HostConstant::NSString(NSFileModificationDate),
@@ -209,6 +212,11 @@ pub const CLASSES: ClassExports = objc_classes! {
         env.framework_state.foundation.ns_file_manager.default_manager = Some(new);
         new
     }
+}
+
+// No iCloud: as on a device signed out of it.
+- (id)URLForUbiquityContainerIdentifier:(id)_identifier { // NSString*
+    nil
 }
 
 - (id)currentDirectoryPath {

@@ -42,6 +42,7 @@ pub mod ns_keyed_archiver;
 pub mod ns_keyed_unarchiver;
 pub mod ns_locale;
 pub mod ns_lock;
+pub mod ns_metadata_query;
 pub mod ns_log;
 pub mod ns_method_signature;
 pub mod ns_notification;
@@ -100,6 +101,7 @@ pub const DYLIB: crate::dyld::HostDylib = crate::dyld::HostDylib {
         ns_keyed_archiver::CLASSES,
         ns_keyed_unarchiver::CLASSES,
         ns_locale::CLASSES,
+        ns_metadata_query::CLASSES,
         ns_lock::CLASSES,
         ns_notification::CLASSES,
         ns_notification_center::CLASSES,
@@ -136,6 +138,7 @@ pub const DYLIB: crate::dyld::HostDylib = crate::dyld::HostDylib {
         ns_key_value_observing::CONSTANTS,
         ns_keyed_unarchiver::CONSTANTS,
         ns_locale::CONSTANTS,
+        ns_metadata_query::CONSTANTS,
         ns_object::CONSTANTS,
         ns_run_loop::CONSTANTS,
         ns_url_connection::CONSTANTS,

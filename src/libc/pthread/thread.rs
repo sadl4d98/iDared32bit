@@ -370,6 +370,16 @@ fn pthread_detach(env: &mut Environment, thread: pthread_t) -> i32 {
     0
 }
 
+/// Threads are never cancelled here, so there's no state to change; the old
+/// one is reported as `PTHREAD_CANCEL_ENABLE`, the default.
+fn pthread_setcancelstate(env: &mut Environment, _state: i32, oldstate: MutPtr<i32>) -> i32 {
+    const PTHREAD_CANCEL_ENABLE: i32 = 1;
+    if !oldstate.is_null() {
+        env.mem.write(oldstate, PTHREAD_CANCEL_ENABLE);
+    }
+    0
+}
+
 fn pthread_setcanceltype(_env: &mut Environment, type_: i32, oldtype: MutPtr<i32>) -> i32 {
     log!("TODO: pthread_setcanceltype({}, {:?})", type_, oldtype);
     0
@@ -466,6 +476,7 @@ pub const FUNCTIONS: FunctionExports = &[
     export_c_func!(pthread_exit(_)),
     export_c_func!(pthread_detach(_)),
     export_c_func!(pthread_setcanceltype(_, _)),
+    export_c_func!(pthread_setcancelstate(_, _)),
     export_c_func!(pthread_testcancel()),
     export_c_func!(pthread_mach_thread_np(_)),
     export_c_func!(pthread_get_stackaddr_np(_)),

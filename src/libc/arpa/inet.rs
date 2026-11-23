@@ -11,7 +11,7 @@ use crate::mem::{ConstPtr, ConstVoidPtr, GuestUSize, MutPtr, MutVoidPtr, SafeRea
 use crate::{export_c_func, Environment};
 
 use crate::dyld::FunctionExports;
-use std::net::{AddrParseError, Ipv4Addr};
+use std::net::{AddrParseError, Ipv4Addr, Ipv6Addr};
 
 #[allow(non_camel_case_types)]
 type in_addr_t = u32;
@@ -26,8 +26,10 @@ unsafe impl SafeRead for in_addr {}
 
 fn inet_addr(env: &mut Environment, str: ConstPtr<u8>) -> in_addr_t {
     let inet_addr_str = env.mem.cstr_at_utf8(str).unwrap();
-    let address: Ipv4Addr = inet_addr_str.parse().unwrap();
-    let res = u32::from_le_bytes(address.octets());
+    // INADDR_NONE for anything that isn't an address, such as a host name.
+    let res = inet_addr_str
+        .parse::<Ipv4Addr>()
+        .map_or(u32::MAX, |address| u32::from_le_bytes(address.octets()));
     log_dbg!("inet_addr({:?}) => {}", inet_addr_str, res);
     res
 }
@@ -71,11 +73,23 @@ fn inet_ntop(
     dst.cast_const()
 }
 
+/// Returns 0 when `src` isn't an address of family `af` (say, a host name),
+/// which is how callers such as libcurl tell the two apart.
 fn inet_pton(env: &mut Environment, af: i32, src: ConstPtr<u8>, dst: MutVoidPtr) -> i32 {
-    assert_eq!(af, AF_INET);
+    const AF_INET6: i32 = 30; // Darwin's value
     let str = env.mem.cstr_at_utf8(src.cast()).unwrap();
-    log_dbg!("inet_pton '{}'", str);
-    let address: Ipv4Addr = str.parse().unwrap();
+    log_dbg!("inet_pton({}, '{}')", af, str);
+    if af == AF_INET6 {
+        let Ok(address) = str.parse::<Ipv6Addr>() else {
+            return 0;
+        };
+        env.mem.bytes_at_mut(dst.cast(), 16).copy_from_slice(&address.octets());
+        return 1;
+    }
+    assert_eq!(af, AF_INET);
+    let Ok(address) = str.parse::<Ipv4Addr>() else {
+        return 0;
+    };
     let addr = in_addr {
         s_addr: u32::from_le_bytes(address.octets()),
     };

@@ -36,6 +36,7 @@ mod selectors;
 mod synchronization;
 
 pub use arc::call_cxx_destructors;
+pub use blocks::{_Block_copy, _Block_release, call_block_with_bool};
 pub use classes::{objc_classes, Class, ClassExports, ClassTemplate};
 pub use exceptions::objc_exception_throw;
 pub use messages::{

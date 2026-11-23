@@ -41,6 +41,7 @@ const BLOCK_BYREF_CALLER: i32 = 128;
 // Offsets in a block: isa, flags, reserved, invoke, descriptor.
 const BLOCK_ISA: GuestUSize = 0;
 const BLOCK_FLAGS: GuestUSize = 4;
+const BLOCK_INVOKE: GuestUSize = 12;
 const BLOCK_DESCRIPTOR: GuestUSize = 16;
 // Offsets in a descriptor: reserved, size, copy helper, dispose helper.
 const DESCRIPTOR_SIZE: GuestUSize = 4;
@@ -88,6 +89,15 @@ fn decrement(env: &mut Environment, ptr: ConstVoidPtr, flags_offset: GuestUSize)
     );
     write(env, ptr, flags_offset, flags - 1);
     flags & BLOCK_REFCOUNT_MASK == 1
+}
+
+/// Calls a block taking one `BOOL`, as UIKit's completion handlers do.
+pub fn call_block_with_bool(env: &mut Environment, block: ConstVoidPtr, arg: bool) {
+    if block.is_null() {
+        return;
+    }
+    let invoke = GuestFunction::from_addr_with_thumb_bit(read(env, block, BLOCK_INVOKE));
+    () = invoke.call_from_host(env, (block, arg));
 }
 
 /// Copies a stack block to the heap. Heap blocks are retained instead, and

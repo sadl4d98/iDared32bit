@@ -112,7 +112,17 @@ pub const CLASSES: ClassExports = objc_classes! {
     }
 
     // FIXME: this should parse the URL
-    assert!(!to_rust_string(env, url).starts_with("file:")); // TODO
+    let file_path = to_rust_string(env, url)
+        .strip_prefix("file://")
+        .map(|rest| rest.strip_prefix("localhost").unwrap_or(rest).to_string());
+    if let Some(file_path) = file_path {
+        let path = from_rust_string(env, file_path);
+        let utf8: NSUInteger = 4; // NSUTF8StringEncoding
+        let decoded: id = msg![env; path stringByReplacingPercentEscapesUsingEncoding:utf8];
+        let this: id = msg![env; this initFileURLWithPath:decoded isDirectory:false];
+        release(env, path);
+        return this;
+    }
     let url: id = msg![env; url copy];
     *env.objc.borrow_mut(this) = NSURLHostObject::OtherURL { ns_string: url };
     this
