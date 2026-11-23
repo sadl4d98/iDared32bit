@@ -88,6 +88,30 @@ pub const CLASSES: ClassExports = objc_classes! {
     nil
 }
 
+// A bundle for a folder inside the app (a resource bundle or a language's
+// .lproj folder, say), or nil if there's no folder there.
++ (id)bundleWithPath:(id)path { // NSString*
+    if path == nil {
+        return nil;
+    }
+    let path_str = ns_string::to_rust_string(env, path).to_string();
+    let is_dir = env.fs.is_dir(crate::fs::GuestPath::new(&path_str));
+    log_dbg!("[NSBundle bundleWithPath:{:?}] is a directory: {}", path_str, is_dir);
+    if !is_dir {
+        return nil;
+    }
+    let bundle_path: id = msg![env; path copy];
+    let host_object = NSBundleHostObject {
+        bundle: None,
+        bundle_path,
+        bundle_identifier: nil,
+        bundle_url: None,
+        info_dictionary: None,
+    };
+    let bundle = env.objc.alloc_object(this, Box::new(host_object), &mut env.mem);
+    autorelease(env, bundle)
+}
+
 + (id)pathForResource:(id)name // NSString*
                ofType:(id)extension // NSString*
           inDirectory:(id)bundle_path { // NSString*
@@ -343,17 +367,26 @@ pub const CLASSES: ClassExports = objc_classes! {
     } else {
         table_name
     };
-    // TODO: support arbitrary bundles, not only main one
-    assert_eq!(this, env.framework_state.foundation.ns_bundle.main_bundle.unwrap());
-    let dict = if let Some(&table_dict) = env.framework_state.foundation.ns_bundle.localization_tables.get(&name) {
+    // The cache is only for the main bundle's tables. ponytail: other
+    // bundles' tables are read afresh each time; cache them by bundle too if
+    // a game turns out to look strings up in one often.
+    let is_main_bundle = Some(this) == env.framework_state.foundation.ns_bundle.main_bundle;
+    let cached = if is_main_bundle {
+        env.framework_state.foundation.ns_bundle.localization_tables.get(&name).copied()
+    } else {
+        None
+    };
+    let dict = if let Some(table_dict) = cached {
         table_dict
     } else {
         let extension = ns_string::get_static_str(env, "strings");
         let dict_url: id = msg![env; this URLForResource:name withExtension:extension];
         if dict_url == nil {
             log!("Warning: Unable to locate localization table named '{}', caching as nil", to_rust_string(env, name));
-            retain(env, name);
-            env.framework_state.foundation.ns_bundle.localization_tables.insert(name, nil);
+            if is_main_bundle {
+                retain(env, name);
+                env.framework_state.foundation.ns_bundle.localization_tables.insert(name, nil);
+            }
             nil
         } else {
             let dict = {
@@ -366,9 +399,11 @@ pub const CLASSES: ClassExports = objc_classes! {
                     load_strings_as_standard_format(env, dict_url)
                 }
             };
-            retain(env, name);
-            retain(env, dict);
-            env.framework_state.foundation.ns_bundle.localization_tables.insert(name, dict);
+            if is_main_bundle {
+                retain(env, name);
+                retain(env, dict);
+                env.framework_state.foundation.ns_bundle.localization_tables.insert(name, dict);
+            }
             dict
         }
     };

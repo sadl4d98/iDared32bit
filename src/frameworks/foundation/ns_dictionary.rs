@@ -471,6 +471,11 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 // Only reached by a subclass from the game, which stores its own contents.
+// Subscripting (`dict[key]`, iOS 6+)
+- (id)objectForKeyedSubscript:(id)key {
+    msg![env; this objectForKey:key]
+}
+
 - (id)init {
     msg_super![env; this init]
 }
@@ -679,6 +684,15 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 // These probably comes from some category related to plists.
+// Subscripting (`dict[key] = x`, iOS 6+): nil removes the key.
+- (())setObject:(id)object forKeyedSubscript:(id)key {
+    if object == nil {
+        () = msg![env; this removeObjectForKey:key];
+    } else {
+        () = msg![env; this setObject:object forKey:key];
+    }
+}
+
 - (())removeObjectsForKeys:(id)keys { // NSArray*
     let count: NSUInteger = msg![env; keys count];
     for i in 0..count {

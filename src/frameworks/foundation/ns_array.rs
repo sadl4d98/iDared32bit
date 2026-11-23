@@ -120,6 +120,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     autorelease(env, array)
 }
 
+// Subscripting (`array[i]`, iOS 6+)
+- (id)objectAtIndexedSubscript:(NSUInteger)index {
+    msg![env; this objectAtIndex:index]
+}
+
 - (id)initWithArray:(id)array // NSArray*
           copyItems:(bool)copy_items {
     if !copy_items {
@@ -356,6 +361,16 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 // These probably comes from some category related to plists.
+// Subscripting (`array[i] = x`, iOS 6+): replaces, or adds at the end.
+- (())setObject:(id)object atIndexedSubscript:(NSUInteger)index {
+    let count: NSUInteger = msg![env; this count];
+    if index == count {
+        () = msg![env; this addObject:object];
+    } else {
+        () = msg![env; this replaceObjectAtIndex:index withObject:object];
+    }
+}
+
 - (id)initWithContentsOfFile:(id)path { // NSString*
     release(env, this);
     if path == nil {

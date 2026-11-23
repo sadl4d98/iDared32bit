@@ -169,6 +169,11 @@ pub const CLASSES: ClassExports = objc_classes! {
     result
 }
 
+- (id)dateByAddingTimeInterval:(NSTimeInterval)secs {
+    let since_reference: NSTimeInterval = msg![env; this timeIntervalSinceReferenceDate];
+    msg_class![env; NSDate dateWithTimeIntervalSinceReferenceDate:(since_reference + secs)]
+}
+
 - (NSTimeInterval)timeIntervalSinceReferenceDate {
     env.objc.borrow::<NSDateHostObject>(this).time_interval
 }
