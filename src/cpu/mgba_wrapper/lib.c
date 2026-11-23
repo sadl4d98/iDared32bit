@@ -4,8 +4,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#define _POSIX_C_SOURCE 199309L /* clock_gettime, for cpu_stats */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "wrapper.h"
 
@@ -459,6 +462,26 @@ void touchHLE_MgbaWrapper_invalidate_cache_range(struct touchHLE_MgbaWrapper *w,
   UNUSED(w);
 }
 
+/* With TOUCHHLE_CPU_STATS set, how fast the interpreter is going: the
+ * average time per guest instruction spent in run_or_step, logged to stderr
+ * every 2^28 instructions. For measuring changes to the interpreter. */
+static void cpu_stats(uint64_t executed, uint64_t ns) {
+  static uint64_t total_executed, total_ns;
+  total_executed += executed;
+  total_ns += ns;
+  if (total_executed >= (1u << 28)) {
+    fprintf(stderr, "CPU stats: %.3f ns per instruction\n",
+            (double)total_ns / (double)total_executed);
+    total_executed = total_ns = 0;
+  }
+}
+
+static uint64_t now_ns(void) {
+  struct timespec t;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &t);
+  return (uint64_t)t.tv_sec * 1000000000u + (uint64_t)t.tv_nsec;
+}
+
 int32_t touchHLE_MgbaWrapper_run_or_step(struct touchHLE_MgbaWrapper *w,
                                          touchHLE_Mem *mem, uint64_t *ticks) {
   w->mem = mem;
@@ -470,13 +493,18 @@ int32_t touchHLE_MgbaWrapper_run_or_step(struct touchHLE_MgbaWrapper *w,
 
   uint64_t budget = ticks ? *ticks : 1;
   uint64_t executed = 0;
+  static int stats = -1;
+  if (stats < 0) {
+    stats = getenv("TOUCHHLE_CPU_STATS") != NULL;
+  }
+  uint64_t start = stats ? now_ns() : 0;
   /* Stepping one instruction at a time rather than using ARMRunLoop, so
    * that a halt is noticed immediately instead of at the next event. */
-  while (executed < budget && !w->halted) {
-    ARMRun(&w->cpu);
-    executed++;
-  }
+  executed = ARMRunSteps(&w->cpu, budget, &w->halted);
 
+  if (stats) {
+    cpu_stats(executed, now_ns() - start);
+  }
   sync_out(w);
   w->mem = NULL;
   if (ticks) {

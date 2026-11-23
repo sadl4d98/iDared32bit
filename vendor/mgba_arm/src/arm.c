@@ -378,6 +378,29 @@ void ARMRun(struct ARMCore* cpu) {
 	}
 }
 
+// ARMRun up to budget times, stopping early once *stop is set (by a
+// handler the last instruction called), and returning how many instructions
+// ran. The same as calling ARMRun in a loop, but with the step inlined: the
+// events are checked between instructions just as often.
+uint64_t ARMRunSteps(struct ARMCore* cpu, uint64_t budget, const volatile bool* stop) {
+	uint64_t executed = 0;
+	while (executed < budget && !*stop) {
+		while (cpu->cycles >= cpu->nextEvent) {
+			cpu->irqh.processEvents(cpu);
+		}
+		if (cpu->executionMode == MODE_THUMB) {
+			ThumbStep(cpu);
+		} else {
+			ARMStep(cpu);
+		}
+		executed++;
+	}
+	while (cpu->cycles >= cpu->nextEvent) {
+		cpu->irqh.processEvents(cpu);
+	}
+	return executed;
+}
+
 void ARMRunLoop(struct ARMCore* cpu) {
 	if (cpu->executionMode == MODE_THUMB) {
 		while (cpu->cycles < cpu->nextEvent) {

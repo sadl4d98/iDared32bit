@@ -238,6 +238,7 @@ void ARMRaiseUndefined(struct ARMCore*);
 
 void ARMRun(struct ARMCore* cpu);
 void ARMRunLoop(struct ARMCore* cpu);
+uint64_t ARMRunSteps(struct ARMCore* cpu, uint64_t budget, const volatile bool* stop);
 void ARMRunFake(struct ARMCore* cpu, uint32_t opcode);
 
 CXX_GUARD_END
