@@ -491,8 +491,17 @@ impl Environment {
         // This needs the executable's code as it was before linking.
         airplay_sdk::fix_code_hash(&executable, &mut mem);
 
+        // From iOS 5 on, libgcc_s is part of libSystem, so apps built for it
+        // (e.g. Rayman Fiesta Run) don't link it by name, yet they and
+        // libstdc++ still call its functions (_Unwind_SjLj_Register etc.).
+        let mut dylib_paths = executable.dynamic_libraries.clone();
+        const LIBGCC: &str = "/usr/lib/libgcc_s.1.dylib";
+        if !dylib_paths.iter().any(|d| d == LIBGCC) {
+            dylib_paths.push(LIBGCC.to_string());
+        }
+
         let mut dylibs = Vec::new();
-        for dylib in &executable.dynamic_libraries {
+        for dylib in &dylib_paths {
             // There are some Free Software libraries bundled with touchHLE and
             // exposed via the guest file system (see Fs::new()).
             let dylib_path = fs::GuestPath::new(dylib);
