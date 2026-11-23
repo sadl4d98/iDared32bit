@@ -57,3 +57,4 @@ DUMP.txt
 # Local, uncommitted Xcode signing settings (holds your Apple Team ID)
 
 /Local.xcconfig
+/target-*/

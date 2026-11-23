@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 taps=$(for i in $(seq 1 16); do printf 'tap:300,200 wait:3 '; done)
 dev-scripts/headless-play.sh "$ipa" "$out" wait:70 tap:250,170 wait:45 tap:241,144 wait:25 tap:60,250 wait:2 $taps &
 sleep 150
-pid=$(pgrep -f "target/release/touchHLE" | head -1)
+pid=$(pgrep -f "release/touchHLE" | head -1)
 before=$(grep -c "EAGLContext.*FPS" "$out/log.txt")
 "$perf" stat -e task-clock -t "$pid" -x, -o "$out/stat.txt" -- sleep 25
 after_lines=$(grep "EAGLContext.*FPS" "$out/log.txt" | tail -n +$((before + 1)))

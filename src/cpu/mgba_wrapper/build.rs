@@ -34,6 +34,29 @@ fn main() {
         .file(mgba_root.join("src/isa-thumb.c"))
         .file(mgba_root.join("src/isa-thumb2.c"));
 
+    // Profile-guided optimisation of the interpreter, which is where nearly
+    // all of a game's time goes. TOUCHHLE_PGO_GENERATE=1 builds it to record
+    // which paths are hot (to a .profraw file per run, see
+    // dev-scripts/pgo-profile.sh); a merged profile in pgo/ is then used
+    // whenever the compiler is clang, as Xcode's is.
+    let profile = package_root.join("pgo/interpreter.profdata");
+    let is_clang = build.get_compiler().is_like_clang();
+    println!("cargo:rerun-if-env-changed=TOUCHHLE_PGO_GENERATE");
+    println!("cargo:rerun-if-changed={}", profile.to_str().unwrap());
+    if std::env::var_os("TOUCHHLE_PGO_GENERATE").is_some() {
+        assert!(is_clang, "TOUCHHLE_PGO_GENERATE needs clang (set CC=clang)");
+        build.flag("-fprofile-instr-generate");
+        link_profile_runtime(&build);
+    } else if is_clang && profile.exists() {
+        build
+            .flag(format!("-fprofile-instr-use={}", profile.to_str().unwrap()))
+            // A profile from another build of the same source still applies
+            // to the functions that match; the rest are left as they are.
+            .flag("-Wno-profile-instr-out-of-date")
+            .flag("-Wno-profile-instr-unprofiled")
+            .flag_if_supported("-Wno-backend-plugin");
+    }
+
     build.compile("mgba_wrapper");
 
     for file in ["lib.c", "vfp.c", "cp15.c", "wrapper.h"] {
@@ -43,4 +66,26 @@ fn main() {
         );
     }
     println!("cargo:rerun-if-changed={}", mgba_root.to_str().unwrap());
+}
+
+/// The instrumented interpreter needs clang's profiling runtime linked in.
+fn link_profile_runtime(build: &cc::Build) {
+    let output = build
+        .get_compiler()
+        .to_command()
+        .arg("--print-libgcc-file-name")
+        .arg("--rtlib=compiler-rt")
+        .output()
+        .expect("couldn't ask clang where its runtime is");
+    let builtins = String::from_utf8(output.stdout).unwrap();
+    let dir = Path::new(builtins.trim()).parent().unwrap();
+    let name = Path::new(builtins.trim())
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .replace("builtins", "profile");
+    let lib = name.trim_start_matches("lib").trim_end_matches(".a");
+    println!("cargo:rustc-link-search=native={}", dir.to_str().unwrap());
+    println!("cargo:rustc-link-lib=static={}", lib);
 }
