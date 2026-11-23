@@ -5,7 +5,7 @@
  */
 //! `UILocalNotification`.
 
-use crate::frameworks::foundation::NSInteger;
+use crate::frameworks::foundation::{NSInteger, NSUInteger};
 use crate::objc::{id, objc_classes, todo_objc_setter, ClassExports};
 
 pub const CLASSES: ClassExports = objc_classes! {
@@ -31,6 +31,18 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 - (())setApplicationIconBadgeNumber:(NSInteger)badge_number {
     todo_objc_setter!(this, badge_number);
+}
+- (())setRepeatInterval:(NSUInteger)interval { // NSCalendarUnit
+    todo_objc_setter!(this, interval);
+}
+- (())setUserInfo:(id)user_info { // NSDictionary *
+    todo_objc_setter!(this, user_info);
+}
+- (())setHasAction:(bool)has_action {
+    todo_objc_setter!(this, has_action);
+}
+- (())setAlertLaunchImage:(id)image_name { // NSString *
+    todo_objc_setter!(this, image_name);
 }
 
 @end

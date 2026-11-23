@@ -203,6 +203,17 @@ pub const CLASSES: ClassExports = objc_classes! {
 - (id)self {
     this
 }
+// As on iOS: "<ClassName: 0x…>".
+- (id)description {
+    let class: Class = msg![env; this class];
+    let name = env.objc.get_class_name(class).to_string();
+    let str = from_rust_string(env, format!("<{}: {:#x}>", name, this.to_bits()));
+    autorelease(env, str)
+}
+- (id)debugDescription {
+    msg![env; this description]
+}
+
 - (Class)class {
     ObjC::read_isa(this, &env.mem)
 }

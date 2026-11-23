@@ -11,7 +11,7 @@ use crate::frameworks::core_foundation::cf_allocator::{kCFAllocatorDefault, CFAl
 use crate::frameworks::core_foundation::CFTypeRef;
 use crate::libc::sys::socket::sockaddr;
 use crate::mem::{ConstPtr, MutPtr, MutVoidPtr, Ptr};
-use crate::objc::{msg, objc_classes, Class, ClassExports, HostObject};
+use crate::objc::{id, msg, objc_classes, Class, ClassExports, HostObject};
 use crate::Environment;
 use std::net::SocketAddrV4;
 
@@ -165,7 +165,35 @@ fn SCNetworkReachabilitySetCallback(
     false
 }
 
+// As SCNetworkReachabilitySetCallback isn't supported, there's never a
+// callback to run: scheduling fails like setting one does, and unscheduling
+// has nothing to do.
+fn SCNetworkReachabilityScheduleWithRunLoop(
+    _env: &mut Environment,
+    target: SCNetworkReachabilityRef,
+    run_loop: id,      // CFRunLoopRef
+    run_loop_mode: id, // CFStringRef
+) -> bool {
+    log!(
+        "TODO: SCNetworkReachabilityScheduleWithRunLoop({:?}, {:?}, {:?}) -> FALSE",
+        target,
+        run_loop,
+        run_loop_mode
+    );
+    false
+}
+fn SCNetworkReachabilityUnscheduleFromRunLoop(
+    _env: &mut Environment,
+    _target: SCNetworkReachabilityRef,
+    _run_loop: id,      // CFRunLoopRef
+    _run_loop_mode: id, // CFStringRef
+) -> bool {
+    true
+}
+
 pub const FUNCTIONS: FunctionExports = &[
+    export_c_func!(SCNetworkReachabilityScheduleWithRunLoop(_, _, _)),
+    export_c_func!(SCNetworkReachabilityUnscheduleFromRunLoop(_, _, _)),
     export_c_func!(SCNetworkReachabilityCreateWithName(_, _)),
     export_c_func!(SCNetworkReachabilityCreateWithAddress(_, _)),
     export_c_func!(SCNetworkReachabilityGetFlags(_, _)),

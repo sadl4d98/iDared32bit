@@ -111,8 +111,10 @@ pub const CLASSES: ClassExports = objc_classes! {
     match posix_io::read(env, fd, buffer, length) {
         -1 => panic!("readDataOfLength: failed"),
         bytes_read => {
-            assert_eq!(length, bytes_read.try_into().unwrap());
-            msg_class![env; NSData dataWithBytesNoCopy:buffer length:length]
+            // Fewer bytes than asked for means the end of the file was
+            // reached, which isn't an error.
+            let bytes_read: NSUInteger = bytes_read.try_into().unwrap();
+            msg_class![env; NSData dataWithBytesNoCopy:buffer length:bytes_read]
         }
     }
 }
