@@ -1,0 +1,45 @@
+name: iOS app (unsigned)
+
+# Builds the iPhone app without signing it, for installing through
+# LiveContainer (or SideStore/AltStore), which sign apps themselves.
+# The .ipa is attached to the run as an artifact.
+
+on:
+  push:
+    branches: [ "rayman-fiesta-run" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install the iOS Rust toolchain
+        run: rustup target add aarch64-apple-ios
+      - name: Build the app
+        run: |
+          xcodebuild build \
+            -project iphone/iDared32bit.xcodeproj \
+            -scheme "iDared 32bit" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package the .ipa
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -qry "iDared32bit-${GITHUB_SHA::7}-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iDared32bit-unsigned-ipa
+          path: "*.ipa"
+          retention-days: 30
