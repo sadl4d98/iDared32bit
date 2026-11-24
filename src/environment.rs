@@ -87,6 +87,10 @@ pub struct Thread {
     /// them (an exception or `longjmp`): the guest's registers when that was
     /// found, to carry on with in the call it's back in.
     unwound_regs: Option<[u32; 16]>,
+    /// The thread's `pthread_getspecific` values, indexed by key: what the
+    /// thread ID register TPIDRURO points to while the thread runs, as on
+    /// iOS (see [crate::libc::pthread::key]).
+    pub tls: MutPtr<MutVoidPtr>,
 }
 
 impl Thread {
@@ -729,6 +733,7 @@ impl Environment {
             framework_state: Default::default(),
             call_entry_sps: Vec::new(),
             unwound_regs: None,
+            tls: crate::libc::pthread::key::alloc_tls(&mut mem),
         };
 
         let audio_subsystem = build_audio_subsystem(window.as_deref());
@@ -760,6 +765,7 @@ impl Environment {
             remaining_ticks: None,
             panic_cell: Rc::new(Cell::new(None)),
         };
+        env.cpu.set_tpidruro(env.threads[0].tls.to_bits());
 
         // Apps get the on-screen Home button (where there is one, and unless
         // it's turned off), the app picker doesn't.
@@ -885,6 +891,7 @@ impl Environment {
             framework_state: Default::default(),
             call_entry_sps: Vec::new(),
             unwound_regs: None,
+            tls: crate::libc::pthread::key::alloc_tls(&mut mem),
         };
 
         let audio_subsystem = build_audio_subsystem(window.as_deref());
@@ -916,6 +923,7 @@ impl Environment {
             remaining_ticks: None,
             panic_cell: Rc::new(Cell::new(None)),
         };
+        env.cpu.set_tpidruro(env.threads[0].tls.to_bits());
 
         env.set_up_initial_env_vars();
 
@@ -1208,6 +1216,7 @@ impl Environment {
             framework_state: Default::default(),
             call_entry_sps: Vec::new(),
             unwound_regs: None,
+            tls: crate::libc::pthread::key::alloc_tls(&mut self.mem),
         });
 
         let new_thread_id = self.threads.len() - 1;
@@ -1703,6 +1712,7 @@ impl Environment {
         self.threads[self.current_thread].host_context = old_context.take();
         *old_context = Some(new_host_ctx);
         self.current_thread = new_thread;
+        self.cpu.set_tpidruro(self.threads[new_thread].tls.to_bits());
     }
 
     #[cold]

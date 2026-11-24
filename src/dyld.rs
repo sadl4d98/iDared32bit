@@ -279,6 +279,22 @@ impl Dyld {
         }
     }
 
+    /// Write the host functions that are better as guest code (see
+    /// [crate::libc::pthread::key::GUEST_ROUTINES]) into guest memory, and
+    /// link their symbols to them: every way of linking a host function
+    /// looks in [Self::non_lazy_host_functions] first.
+    fn write_guest_routines(&mut self, mem: &mut Mem) {
+        for &(symbol, code) in crate::libc::pthread::key::GUEST_ROUTINES {
+            let ptr: MutPtr<u32> = mem.alloc(4 * code.len() as GuestUSize).cast();
+            for (i, &word) in code.iter().enumerate() {
+                mem.write(ptr + i as GuestUSize, word);
+            }
+            let routine = GuestFunction::from_addr_with_thumb_bit(ptr.to_bits());
+            assert!(!routine.is_thumb());
+            self.non_lazy_host_functions.insert(symbol, routine);
+        }
+    }
+
     pub fn return_to_host_routine(&self) -> GuestFunction {
         self.return_to_host_routine.unwrap()
     }
@@ -300,6 +316,7 @@ impl Dyld {
         self.return_to_host_routine =
             Some(write_return_to_host_routine(mem, Self::SVC_RETURN_TO_HOST));
         self.thread_exit_routine = Some(write_return_to_host_routine(mem, Self::SVC_THREAD_EXIT));
+        self.write_guest_routines(mem);
 
         // Currently assuming only the app binary contains Objective-C things.
 
@@ -422,6 +439,7 @@ impl Dyld {
         self.return_to_host_routine =
             Some(write_return_to_host_routine(mem, Self::SVC_RETURN_TO_HOST));
         self.thread_exit_routine = Some(write_return_to_host_routine(mem, Self::SVC_THREAD_EXIT));
+        self.write_guest_routines(mem);
 
         objc.register_host_selectors(mem);
     }

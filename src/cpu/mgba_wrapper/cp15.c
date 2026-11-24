@@ -43,9 +43,9 @@ bool touchHLE_cp15_raw(struct ARMCore *cpu, uint32_t opcode) {
       /* TPIDRURW, the user read/write thread ID register. */
       value = w->cp15_tpidrurw;
     } else if (thread_regs && opc2 == 3) {
-      /* TPIDRURO, which only privileged code can set. touchHLE never does,
-       * so it reads as zero. */
-      value = 0;
+      /* TPIDRURO, which only privileged code can set: here the host does,
+       * to the running thread's thread-specific data array. */
+      value = w->cp15_tpidruro;
     } else {
       w->unknown_cp15_opcode = opcode;
     }

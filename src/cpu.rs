@@ -25,7 +25,8 @@ use touchHLE_dynarmic_wrapper::{
     touchHLE_DynarmicWrapper_delete, touchHLE_DynarmicWrapper_invalidate_cache_range,
     touchHLE_DynarmicWrapper_new, touchHLE_DynarmicWrapper_regs_const,
     touchHLE_DynarmicWrapper_regs_mut, touchHLE_DynarmicWrapper_run_or_step,
-    touchHLE_DynarmicWrapper_set_cpsr, touchHLE_DynarmicWrapper_swap_context,
+    touchHLE_DynarmicWrapper_set_cpsr, touchHLE_DynarmicWrapper_set_tpidruro,
+    touchHLE_DynarmicWrapper_swap_context,
 };
 use touchHLE_mgba_wrapper::*;
 
@@ -327,6 +328,16 @@ impl Cpu {
     }
 
     /// Get PC with the Thumb bit appropriately set.
+    /// Set the thread ID register TPIDRURO, which isn't part of a thread's
+    /// context: the caller sets it to each thread's thread-specific data
+    /// array (see [crate::libc::pthread::key]) as it switches to it.
+    pub fn set_tpidruro(&mut self, value: u32) {
+        match self.backend {
+            Backend::Interpreter(w) => unsafe { touchHLE_MgbaWrapper_set_tpidruro(w, value) },
+            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_set_tpidruro(w, value) },
+        }
+    }
+
     pub fn pc_with_thumb_bit(&self) -> GuestFunction {
         let pc = self.regs()[Self::PC];
         let thumb = (self.cpsr() & Self::CPSR_THUMB) == Self::CPSR_THUMB;

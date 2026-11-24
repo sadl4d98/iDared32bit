@@ -41,6 +41,17 @@ fn qsort(
     );
 }
 
+/// Sorts `nitems` items through `compar(i, j)` (comparing the items at `i`
+/// and `j`) and `swap(i, j)`.
+///
+/// A merge sort of the items' positions, which compares the items where they
+/// are, then a pass that moves each item into place with at most one swap.
+/// Merging is skipped where two halves are already in order, so a sorted
+/// list takes about one comparison per item: games sort nearly sorted lists
+/// every frame (things to draw, by depth), and each comparison is a call into
+/// the guest. (A quicksort with the first item as pivot, as before, took
+/// about n²/2 comparisons for such a list.) It never panics on a comparator
+/// that isn't a consistent ordering; the items just end up in some order.
 pub fn qsort_generic<T, Compare, Swap>(
     user_data: &mut T,
     nitems: u32,
@@ -53,36 +64,103 @@ pub fn qsort_generic<T, Compare, Swap>(
     if nitems < 2 {
         return;
     }
-    qsort_rec(user_data, compar, swap, 0, nitems - 1);
-}
+    let mut order: Vec<u32> = (0..nitems).collect();
+    let mut buffer = vec![0; nitems as usize];
+    merge_sort(&mut order, &mut buffer, &mut |i, j| compar(user_data, i, j));
 
-fn qsort_rec<T, Compare, Swap>(
-    user_data: &mut T,
-    compar: &mut Compare, // int (*compar)(const void *, const void*))
-    swap: &mut Swap,
-    low: u32,
-    hi: u32,
-) where
-    Compare: FnMut(&mut T, u32, u32) -> i32,
-    Swap: FnMut(&mut T, u32, u32),
-{
-    if low >= hi {
-        return;
-    }
-    // TODO: use median selection
-    let pivot = low;
-    let mut separator = low + 1;
-    for i in low + 1..=hi {
-        if compar(user_data, i, pivot) < 0 {
-            swap(user_data, i, separator);
-            separator += 1;
+    // order[k] is where the item that belongs at k is now.
+    let n = nitems as usize;
+    let mut item_at: Vec<u32> = (0..nitems).collect(); // position -> item
+    let mut pos_of: Vec<u32> = (0..nitems).collect(); // item -> position
+    for k in 0..n {
+        let p = pos_of[order[k] as usize] as usize;
+        if p != k {
+            swap(user_data, k as u32, p as u32);
+            item_at.swap(k, p);
+            pos_of[item_at[k] as usize] = k as u32;
+            pos_of[item_at[p] as usize] = p as u32;
         }
     }
-    swap(user_data, pivot, separator - 1);
-    if separator > 1 {
-        qsort_rec(user_data, compar, swap, low, separator - 2);
+}
+
+fn merge_sort(v: &mut [u32], buffer: &mut [u32], cmp: &mut impl FnMut(u32, u32) -> i32) {
+    let len = v.len();
+    if len <= 8 {
+        for i in 1..len {
+            let mut j = i;
+            while j > 0 && cmp(v[j - 1], v[j]) > 0 {
+                v.swap(j - 1, j);
+                j -= 1;
+            }
+        }
+        return;
     }
-    qsort_rec(user_data, compar, swap, separator, hi);
+    let mid = len / 2;
+    merge_sort(&mut v[..mid], &mut buffer[..mid], cmp);
+    merge_sort(&mut v[mid..], &mut buffer[mid..], cmp);
+    if cmp(v[mid - 1], v[mid]) <= 0 {
+        return; // already in order
+    }
+    let (mut i, mut j, mut k) = (0, mid, 0);
+    while i < mid && j < len {
+        if cmp(v[i], v[j]) <= 0 {
+            buffer[k] = v[i];
+            i += 1;
+        } else {
+            buffer[k] = v[j];
+            j += 1;
+        }
+        k += 1;
+    }
+    buffer[k..k + mid - i].copy_from_slice(&v[i..mid]);
+    k += mid - i;
+    buffer[k..k + len - j].copy_from_slice(&v[j..len]);
+    v.copy_from_slice(&buffer[..len]);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::qsort_generic;
+
+    fn sort(items: &mut Vec<i32>, compar: impl Fn(i32, i32) -> i32) -> u32 {
+        let mut comparisons = 0;
+        let n = items.len() as u32;
+        qsort_generic(
+            items,
+            n,
+            &mut |items, i, j| {
+                comparisons += 1;
+                compar(items[i as usize], items[j as usize])
+            },
+            &mut |items, i, j| items.swap(i as usize, j as usize),
+        );
+        comparisons
+    }
+
+    #[test]
+    fn sorts() {
+        let by_value = |a: i32, b: i32| (a > b) as i32 - (a < b) as i32;
+        // A scrambled list, with duplicates.
+        let mut v: Vec<i32> = (0..1000).map(|i| (i * 7919) % 613).collect();
+        let mut expected = v.clone();
+        expected.sort();
+        sort(&mut v, by_value);
+        assert_eq!(v, expected);
+        // Reversed.
+        let mut v: Vec<i32> = (0..1000).rev().collect();
+        sort(&mut v, by_value);
+        assert_eq!(v, (0..1000).collect::<Vec<_>>());
+        // Already sorted: about one comparison per item.
+        let mut v: Vec<i32> = (0..1000).collect();
+        let comparisons = sort(&mut v, by_value);
+        assert_eq!(v, (0..1000).collect::<Vec<_>>());
+        assert!(comparisons < 1200, "{comparisons} comparisons");
+        // A comparator that isn't an ordering doesn't panic, and loses nothing.
+        let mut v: Vec<i32> = (0..100).collect();
+        sort(&mut v, |a, b| if (a + b) % 3 == 0 { -1 } else { 1 });
+        v.sort();
+        assert_eq!(v, (0..100).collect::<Vec<_>>());
+    }
 }
 
 pub const FUNCTIONS: FunctionExports = &[export_c_func!(qsort(_, _, _, _))];

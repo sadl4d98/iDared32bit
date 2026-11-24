@@ -403,6 +403,12 @@ uint32_t touchHLE_MgbaWrapper_cpsr(const struct touchHLE_MgbaWrapper *w) {
   return (uint32_t)w->cpu.cpsr.packed;
 }
 
+/* See cp15_tpidruro in wrapper.h. */
+void touchHLE_MgbaWrapper_set_tpidruro(struct touchHLE_MgbaWrapper *w,
+                                       uint32_t value) {
+  w->cp15_tpidruro = value;
+}
+
 void touchHLE_MgbaWrapper_set_cpsr(struct touchHLE_MgbaWrapper *w,
                                    uint32_t cpsr) {
   w->cpu.cpsr.packed = (int32_t)cpsr;

@@ -92,6 +92,9 @@ struct touchHLE_MgbaWrapper {
 
   /* CP15 state; see cp15.c. */
   uint32_t cp15_tpidrurw;
+  /* TPIDRURO, which the host sets to the running thread's thread-specific
+   * data array, as iOS does (see src/libc/pthread/key.rs). */
+  uint32_t cp15_tpidruro;
   /* The last CP15 access that is not modelled, or zero. Cleared when read,
    * so each is logged once. Zero is safe as "none": it does not encode an
    * MCR or MRC. */
