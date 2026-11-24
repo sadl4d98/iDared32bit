@@ -1272,6 +1272,7 @@ dependencies = [
  "sha2",
  "symphonia",
  "tiny-skia",
+ "touchHLE_dynarmic_wrapper",
  "touchHLE_gl_bindings",
  "touchHLE_mgba_wrapper",
  "touchHLE_pvrt_decompress_wrapper",
@@ -1280,6 +1281,14 @@ dependencies = [
  "uuid",
  "windows-sys 0.61.2",
  "zip",
+]
+
+[[package]]
+name = "touchHLE_dynarmic_wrapper"
+version = "0.3.0"
+dependencies = [
+ "cc",
+ "cmake",
 ]
 
 [[package]]

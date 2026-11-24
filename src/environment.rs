@@ -575,10 +575,15 @@ impl Environment {
         let mut dyld = dyld::Dyld::new();
         dyld.do_initial_linking(&bins, &mut mem, &mut objc)?;
 
-        let cpu = cpu::Cpu::new(match options.direct_memory_access {
-            true => Some(&mut mem),
-            false => None,
-        });
+        let cpu_backend = options.cpu_backend.unwrap_or_else(cpu::CpuBackend::auto);
+        log!("CPU emulation: {:?}", cpu_backend);
+        let cpu = cpu::Cpu::new_with_backend(
+            match options.direct_memory_access {
+                true => Some(&mut mem),
+                false => None,
+            },
+            cpu_backend,
+        );
 
         let main_thread_init_routine = Coroutine::new(move |yielder, mut env: Environment| {
             let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -858,10 +863,15 @@ impl Environment {
         let mut dyld = dyld::Dyld::new();
         dyld.do_initial_linking_with_no_bins(&mut mem, &mut objc);
 
-        let cpu = cpu::Cpu::new(match options.direct_memory_access {
-            true => Some(&mut mem),
-            false => None,
-        });
+        let cpu_backend = options.cpu_backend.unwrap_or_else(cpu::CpuBackend::auto);
+        log!("CPU emulation: {:?}", cpu_backend);
+        let cpu = cpu::Cpu::new_with_backend(
+            match options.direct_memory_access {
+                true => Some(&mut mem),
+                false => None,
+            },
+            cpu_backend,
+        );
 
         let main_thread = Thread {
             state: ThreadState::Running,

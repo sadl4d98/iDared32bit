@@ -6,3 +6,7 @@
 	path = vendor/SDL
 	url = https://github.com/iDared32bit-emu/SDL.git
 	branch = touchhle-ios-host
+[submodule "vendor/dynarmic"]
+	path = vendor/dynarmic
+	url = https://github.com/johnny901901901/dynarmic.git
+	branch = ios-hyperhle-experiment

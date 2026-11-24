@@ -211,6 +211,15 @@ Graphics driver options:
         When this option isn't in use, iDared 32bit will try each in order and
         use the first one that works.
 
+CPU options:
+    --cpu=...
+        Which CPU emulation to use: "jit", Dynarmic, which recompiles the
+        game's code and is much faster; "interpreter", which runs it one
+        instruction at a time and works anywhere; or "auto", the default,
+        which is the JIT wherever it is allowed. On iOS that is only while a
+        debugger is attached, which is how tools like StikDebug enable JIT;
+        otherwise the interpreter is used.
+
 Debugging options:
     --disable-direct-memory-access
         Force the CPU emulation backend to access guest data memory via the

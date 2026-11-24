@@ -76,6 +76,7 @@ tiny-skia = { version = "0.11.4", default-features = false, features = ["std"] }
 sdl2 = { git = "https://github.com/iDared32bit-emu/rust-sdl2", branch = "touchhle-ios-host", features = ["hidapi"] }
 sdl2-sys = { git = "https://github.com/iDared32bit-emu/rust-sdl2", branch = "touchhle-ios-host" }
 touchHLE_mgba_wrapper = { path = "src/cpu/mgba_wrapper" }
+touchHLE_dynarmic_wrapper = { path = "src/cpu/dynarmic_wrapper" }
 touchHLE_gl_bindings = { path = "src/gles/gl_bindings" }
 touchHLE_pvrt_decompress_wrapper = { path = "src/image/pvrt_decompress_wrapper" }
 touchHLE_stb_image_wrapper = { path = "src/image/stb_image_wrapper" }

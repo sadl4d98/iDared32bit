@@ -20,6 +20,13 @@ use crate::abi::GuestFunction;
 use crate::mem::{ConstPtr, GuestUSize, Mem, MutPtr, Ptr, SafeRead, SafeWrite};
 
 // Import functions from C
+use touchHLE_dynarmic_wrapper::{
+    touchHLE_DynarmicContext, touchHLE_DynarmicWrapper, touchHLE_DynarmicWrapper_cpsr,
+    touchHLE_DynarmicWrapper_delete, touchHLE_DynarmicWrapper_invalidate_cache_range,
+    touchHLE_DynarmicWrapper_new, touchHLE_DynarmicWrapper_regs_const,
+    touchHLE_DynarmicWrapper_regs_mut, touchHLE_DynarmicWrapper_run_or_step,
+    touchHLE_DynarmicWrapper_set_cpsr, touchHLE_DynarmicWrapper_swap_context,
+};
 use touchHLE_mgba_wrapper::*;
 
 type VAddr = u32;
@@ -95,8 +102,55 @@ extern "C" fn touchHLE_cpu_write_u64(mem: *mut touchHLE_Mem, addr: VAddr, value:
     touchHLE_cpu_write_impl(mem, addr, value)
 }
 
+/// Which CPU emulation backend to use (`--cpu=`).
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum CpuBackend {
+    /// mGBA's ARM interpreter, extended as described above. Works anywhere.
+    Interpreter,
+    /// Dynarmic, a JIT recompiler: much faster, but it needs the host to let
+    /// it create code, which iOS only does when a debugger is attached (e.g.
+    /// StikDebug), so on iOS it's only used then by default.
+    Jit,
+}
+
+impl CpuBackend {
+    /// What `--cpu=auto` (the default) means here and now.
+    pub fn auto() -> CpuBackend {
+        if jit_available() {
+            CpuBackend::Jit
+        } else {
+            CpuBackend::Interpreter
+        }
+    }
+}
+
+/// Whether this process may create code. On iOS that's when it's being
+/// debugged (CS_DEBUGGED), which is how StikDebug and similar tools enable
+/// JIT; elsewhere it always may.
+fn jit_available() -> bool {
+    #[cfg(target_os = "ios")]
+    {
+        extern "C" {
+            fn csops(pid: i32, ops: u32, useraddr: *mut u32, usersize: usize) -> i32;
+            fn getpid() -> i32;
+        }
+        const CS_OPS_STATUS: u32 = 0;
+        const CS_DEBUGGED: u32 = 0x1000_0000;
+        let mut flags = 0u32;
+        let ok = unsafe { csops(getpid(), CS_OPS_STATUS, &mut flags, 4) } == 0;
+        ok && flags & CS_DEBUGGED != 0
+    }
+    #[cfg(not(target_os = "ios"))]
+    true
+}
+
+enum Backend {
+    Interpreter(*mut touchHLE_MgbaWrapper),
+    Jit(*mut touchHLE_DynarmicWrapper),
+}
+
 pub struct Cpu {
-    mgba_wrapper: *mut touchHLE_MgbaWrapper,
+    backend: Backend,
     /// Copy of the direct memory access pointer used to check it has not
     /// changed. If this is null, direct memory access is not in use.
     direct_memory_access_ptr: *const std::ffi::c_void,
@@ -104,7 +158,10 @@ pub struct Cpu {
 
 impl Drop for Cpu {
     fn drop(&mut self) {
-        unsafe { touchHLE_MgbaWrapper_delete(self.mgba_wrapper) }
+        match self.backend {
+            Backend::Interpreter(w) => unsafe { touchHLE_MgbaWrapper_delete(w) },
+            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_delete(w) },
+        }
     }
 }
 
@@ -150,7 +207,13 @@ impl Cpu {
     /// is provided, direct memory access is enabled, and the CPU instance
     /// becomes bound to that [Mem] instance (subsequent calls must use the same
     /// one).
+    #[cfg(test)]
     pub fn new(direct_memory_access: Option<&mut Mem>) -> Cpu {
+        Self::new_with_backend(direct_memory_access, CpuBackend::Interpreter)
+    }
+
+    /// [Self::new], with the given backend.
+    pub fn new_with_backend(direct_memory_access: Option<&mut Mem>, backend: CpuBackend) -> Cpu {
         // Null page count is in pages rather than bytes. Mem ensures it is
         // page aligned.
         let null_page_count: usize = direct_memory_access
@@ -169,23 +232,35 @@ impl Cpu {
             .map_or(std::ptr::null_mut(), |mem| unsafe {
                 mem.direct_memory_access_ptr()
             });
-        let mgba_wrapper =
-            unsafe { touchHLE_MgbaWrapper_new(direct_memory_access_ptr, null_page_count) };
+        let backend = match backend {
+            CpuBackend::Interpreter => Backend::Interpreter(unsafe {
+                touchHLE_MgbaWrapper_new(direct_memory_access_ptr, null_page_count)
+            }),
+            CpuBackend::Jit => Backend::Jit(unsafe {
+                touchHLE_DynarmicWrapper_new(direct_memory_access_ptr, null_page_count)
+            }),
+        };
         Cpu {
-            mgba_wrapper,
+            backend,
             direct_memory_access_ptr,
         }
     }
 
     pub fn regs(&self) -> &[u32; 16] {
         unsafe {
-            let ptr = touchHLE_MgbaWrapper_regs_const(self.mgba_wrapper);
+            let ptr = match self.backend {
+                Backend::Interpreter(w) => touchHLE_MgbaWrapper_regs_const(w),
+                Backend::Jit(w) => touchHLE_DynarmicWrapper_regs_const(w),
+            };
             &*(ptr as *const [u32; 16])
         }
     }
     pub fn regs_mut(&mut self) -> &mut [u32; 16] {
         unsafe {
-            let ptr = touchHLE_MgbaWrapper_regs_mut(self.mgba_wrapper);
+            let ptr = match self.backend {
+                Backend::Interpreter(w) => touchHLE_MgbaWrapper_regs_mut(w),
+                Backend::Jit(w) => touchHLE_DynarmicWrapper_regs_mut(w),
+            };
             &mut *(ptr as *mut [u32; 16])
         }
     }
@@ -222,17 +297,33 @@ impl Cpu {
     }
 
     pub fn cpsr(&self) -> u32 {
-        unsafe { touchHLE_MgbaWrapper_cpsr(self.mgba_wrapper) }
+        match self.backend {
+            Backend::Interpreter(w) => unsafe { touchHLE_MgbaWrapper_cpsr(w) },
+            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_cpsr(w) },
+        }
     }
 
     pub fn set_cpsr(&mut self, cpsr: u32) {
-        unsafe { touchHLE_MgbaWrapper_set_cpsr(self.mgba_wrapper, cpsr) }
+        match self.backend {
+            Backend::Interpreter(w) => unsafe { touchHLE_MgbaWrapper_set_cpsr(w, cpsr) },
+            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_set_cpsr(w, cpsr) },
+        }
     }
 
     /// Swap the current state of the CPU (registers etc) with the state stored
     /// in the context object.
     pub fn swap_context(&mut self, context: &mut CpuContext) {
-        unsafe { touchHLE_MgbaWrapper_swap_context(self.mgba_wrapper, context) }
+        match self.backend {
+            Backend::Interpreter(w) => unsafe { touchHLE_MgbaWrapper_swap_context(w, context) },
+            // The two wrappers' contexts have the same layout (regs, extregs,
+            // cpsr, fpscr), so a thread can be switched between them.
+            Backend::Jit(w) => unsafe {
+                touchHLE_DynarmicWrapper_swap_context(
+                    w,
+                    (context as *mut CpuContext).cast::<touchHLE_DynarmicContext>(),
+                )
+            },
+        }
     }
 
     /// Get PC with the Thumb bit appropriately set.
@@ -268,7 +359,12 @@ impl Cpu {
     /// addresses. This is of interest to the dynamic linker, which will
     /// sometimes rewrite code.
     pub fn invalidate_cache_range(&mut self, base: VAddr, size: GuestUSize) {
-        unsafe { touchHLE_MgbaWrapper_invalidate_cache_range(self.mgba_wrapper, base, size) }
+        match self.backend {
+            Backend::Interpreter(w) => unsafe {
+                touchHLE_MgbaWrapper_invalidate_cache_range(w, base, size)
+            },
+            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_invalidate_cache_range(w, base, size) },
+        }
     }
 
     /// Start CPU execution.
@@ -292,21 +388,28 @@ impl Cpu {
         // no callback path, so it needs this whether or not direct memory
         // access is enabled for data. Setting it per-run also means a Cpu
         // built without a Mem (see ::new) still works.
-        unsafe {
-            touchHLE_MgbaWrapper_set_fetch_region(self.mgba_wrapper, mem.direct_memory_access_ptr())
+        let w = match self.backend {
+            Backend::Interpreter(w) => w,
+            Backend::Jit(w) => {
+                let res = unsafe {
+                    touchHLE_DynarmicWrapper_run_or_step(
+                        w,
+                        mem as *mut Mem as *mut touchHLE_dynarmic_wrapper::touchHLE_Mem,
+                        ticks,
+                    )
+                };
+                return Self::state_from_result(res, || None, self.cpsr(), self.regs()[Self::PC]);
+            }
         };
+        unsafe { touchHLE_MgbaWrapper_set_fetch_region(w, mem.direct_memory_access_ptr()) };
 
         let res = unsafe {
-            touchHLE_MgbaWrapper_run_or_step(
-                self.mgba_wrapper,
-                mem as *mut Mem as *mut touchHLE_Mem,
-                ticks,
-            )
+            touchHLE_MgbaWrapper_run_or_step(w, mem as *mut Mem as *mut touchHLE_Mem, ticks)
         };
         // CP15 accesses the core doesn't model succeed rather than failing,
         // but are logged so a missing one can be found; see cp15.c in the
         // wrapper.
-        let unknown_cp15 = unsafe { touchHLE_MgbaWrapper_take_unknown_cp15(self.mgba_wrapper) };
+        let unknown_cp15 = unsafe { touchHLE_MgbaWrapper_take_unknown_cp15(w) };
         if unknown_cp15 != 0 {
             log!(
                 "Unimplemented CP15 access {:#010x} (CRn={}, opc1={}, CRm={}, opc2={}), {}",
@@ -323,21 +426,31 @@ impl Cpu {
             );
         }
 
+        let opcode = || Some(unsafe { touchHLE_MgbaWrapper_last_undefined_opcode(w) });
+        Self::state_from_result(res, opcode, self.cpsr(), self.regs()[Self::PC])
+    }
+
+    /// The wrappers' common result codes. `undefined_opcode` gives the
+    /// undefined instruction's encoding, if the backend knows it.
+    fn state_from_result(
+        res: i32,
+        undefined_opcode: impl FnOnce() -> Option<u32>,
+        cpsr: u32,
+        pc: u32,
+    ) -> CpuState {
         match res {
             -1 => CpuState::Normal,
             -2 => CpuState::Error(CpuError::MemoryError),
             -3 => {
                 // Worth spelling out: an undefined encoding here usually
                 // means a gap in this core rather than bad guest code.
-                let opcode =
-                    unsafe { touchHLE_MgbaWrapper_last_undefined_opcode(self.mgba_wrapper) };
                 // PC is past the instruction at this point (see
                 // Environment::debug_cpu_error), so step back to it.
-                let thumb = (self.cpsr() & Self::CPSR_THUMB) != 0;
+                let thumb = (cpsr & Self::CPSR_THUMB) != 0;
                 log!(
-                    "Undefined instruction {:#010x} at {:#010x} ({})",
-                    opcode,
-                    self.regs()[Self::PC] - if thumb { 2 } else { 4 },
+                    "Undefined instruction {} at {:#010x} ({})",
+                    undefined_opcode().map_or("(unknown)".to_string(), |o| format!("{o:#010x}")),
+                    pc - if thumb { 2 } else { 4 },
                     if thumb { "Thumb" } else { "ARM" }
                 );
                 CpuState::Error(CpuError::UndefinedInstruction)

@@ -6,6 +6,7 @@
 //! Parsing and management of user-configurable options, e.g. for input methods.
 
 use crate::gles::GLESImplementation;
+use crate::cpu::CpuBackend;
 use crate::window::{DeviceFamily, DeviceOrientation, FitScreen};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
@@ -51,6 +52,8 @@ pub struct Options {
     pub stabilize_virtual_cursor: Option<(f32, f32)>,
     pub gles1_implementation: Option<GLESImplementation>,
     pub direct_memory_access: bool,
+    /// `--cpu=`; [None] is auto (see [CpuBackend::auto]).
+    pub cpu_backend: Option<CpuBackend>,
     pub gdb_listen_addrs: Option<Vec<SocketAddr>>,
     pub preferred_languages: Option<Vec<String>>,
     pub headless: bool,
@@ -85,6 +88,7 @@ impl Default for Options {
             stabilize_virtual_cursor: None,
             gles1_implementation: None,
             direct_memory_access: true,
+            cpu_backend: None,
             gdb_listen_addrs: None,
             preferred_languages: None,
             headless: false,
@@ -139,6 +143,13 @@ impl Options {
                 .filter(|&r: &f32| r >= 1.0)
                 .ok_or_else(|| "Invalid screen ratio".to_string())?;
             self.fit_screen = Some(FitScreen::Ratio(ratio));
+        } else if let Some(value) = arg.strip_prefix("--cpu=") {
+            self.cpu_backend = match value {
+                "auto" => None,
+                "jit" => Some(CpuBackend::Jit),
+                "interpreter" => Some(CpuBackend::Interpreter),
+                _ => return Err("Invalid CPU backend".to_string()),
+            };
         } else if let Some(value) = arg.strip_prefix("--scale-hack=") {
             self.scale_hack = value
                 .parse()
