@@ -1825,6 +1825,16 @@ const QUICK_OPTIONS: &[QuickOption] = &[
         ]),
         desktop_only: false,
     },
+    QuickOption {
+        label: "Log frame rate",
+        footer: "Writes the frame rate to Log.txt once a second.",
+        kind: QuickOptionKind::Switch {
+            default: false,
+            on: Some("--print-fps"),
+            off: None,
+        },
+        desktop_only: false,
+    },
 ];
 
 /// The quick options shown on this platform.
