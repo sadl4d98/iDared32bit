@@ -735,7 +735,11 @@ impl Mem {
             .map(|chunk| {
                 let c = u32::from_le_bytes(chunk.try_into().unwrap());
                 char::from_u32(c).unwrap_or_else(|| {
-                    log!("Warning: invalid wide character {:#x} in string at {:?}", c, ptr);
+                    log!(
+                        "Warning: invalid wide character {:#x} in string at {:?}",
+                        c,
+                        ptr
+                    );
                     char::REPLACEMENT_CHARACTER
                 })
             });

@@ -129,9 +129,15 @@ fn finish_later(env: &mut Environment, this: id, handler: ConstVoidPtr, ok: bool
         return;
     }
     let handler = _Block_copy(env, handler);
-    env.objc.borrow_mut::<UIDocumentHostObject>(this).pending.push((handler, ok));
+    env.objc
+        .borrow_mut::<UIDocumentHostObject>(this)
+        .pending
+        .push((handler, ok));
     // Kept alive until the handler has run.
     retain(env, this);
-    let sel: SEL = env.objc.lookup_selector("_touchHLE_runCompletionHandlers").unwrap();
+    let sel: SEL = env
+        .objc
+        .lookup_selector("_touchHLE_runCompletionHandlers")
+        .unwrap();
     () = msg![env; this performSelector:sel withObject:nil afterDelay:0.0];
 }

@@ -282,6 +282,9 @@ public:
     }
     cpu = std::make_unique<Dynarmic::A32::Jit>(user_config);
     env.cpu = cpu.get();
+    // The main thread's FPSCR, as the interpreter's: TOUCHHLE_DEFAULT_FPSCR
+    // in src/cpu/mgba_wrapper/wrapper.h, which says why.
+    cpu->SetFpscr(0x03000000);
   }
 
   const std::uint32_t *regs() const { return &cpu->Regs().front(); }

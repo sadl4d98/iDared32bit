@@ -588,9 +588,18 @@ pub const CONSTANTS: ConstantExports = &[
         "_UIBackgroundTaskInvalid",
         HostConstant::Custom(|env| env.mem.alloc_and_write(0u32).cast().cast_const()),
     ),
-    ("_UIApplicationLaunchOptionsLocalNotificationKey", HostConstant::NSString("UIApplicationLaunchOptionsLocalNotificationKey")),
-    ("_UILocalNotificationDefaultSoundName", HostConstant::NSString("UILocalNotificationDefaultSoundName")),
-    ("_UIDocumentStateChangedNotification", HostConstant::NSString("UIDocumentStateChangedNotification")),
+    (
+        "_UIApplicationLaunchOptionsLocalNotificationKey",
+        HostConstant::NSString("UIApplicationLaunchOptionsLocalNotificationKey"),
+    ),
+    (
+        "_UILocalNotificationDefaultSoundName",
+        HostConstant::NSString("UILocalNotificationDefaultSoundName"),
+    ),
+    (
+        "_UIDocumentStateChangedNotification",
+        HostConstant::NSString("UIDocumentStateChangedNotification"),
+    ),
     (
         "_UIApplicationDidFinishLaunchingNotification",
         HostConstant::NSString(UIApplicationDidFinishLaunchingNotification),

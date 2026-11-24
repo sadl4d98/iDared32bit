@@ -374,7 +374,9 @@ impl Cpu {
             Backend::Interpreter(w) => unsafe {
                 touchHLE_MgbaWrapper_invalidate_cache_range(w, base, size)
             },
-            Backend::Jit(w) => unsafe { touchHLE_DynarmicWrapper_invalidate_cache_range(w, base, size) },
+            Backend::Jit(w) => unsafe {
+                touchHLE_DynarmicWrapper_invalidate_cache_range(w, base, size)
+            },
         }
     }
 

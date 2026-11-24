@@ -31,10 +31,14 @@ bool touchHLE_cpu_write_u32(touchHLE_Mem *mem, uint32_t addr, uint32_t value);
 #define RESULT_UNDEFINED_INSTRUCTION (-3)
 #define RESULT_BREAKPOINT (-4)
 
-/* The FPSCR a thread starts with: flush-to-zero on, as iOS sets it (Apple's
- * TN2293), and otherwise the architectural reset value. Mirrored as
- * DEFAULT_FPSCR in lib.rs, for new threads' contexts. */
-#define TOUCHHLE_DEFAULT_FPSCR 0x01000000u
+/* The FPSCR a thread starts with: RunFast mode, flush-to-zero (as iOS sets
+ * it, Apple's TN2293) and default NaN, otherwise the architectural reset
+ * value. iOS compilers put scalar float maths in NEON, which always works
+ * that way, so code expects it; and it lets the JIT run NEON float
+ * instructions without switching the host's float mode around each one.
+ * Mirrored as DEFAULT_FPSCR in lib.rs, for new threads' contexts, and in the
+ * Dynarmic wrapper. */
+#define TOUCHHLE_DEFAULT_FPSCR 0x03000000u
 
 /* VFPv3-D32, as on the Cortex-A8 of the iPhone 3GS and later: 32
  * double-precision registers, the low 16 of which are also the 32

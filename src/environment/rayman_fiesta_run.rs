@@ -47,7 +47,10 @@ pub fn fit_screen(bundle_id: &str, window: Option<&Window>, mem: &mut Mem) {
             mem.read(Ptr::<u16, false>::from_bits(addr + 2)),
         ]
     };
-    if SITES.iter().any(|&(addr, original)| read(mem, addr) != original) {
+    if SITES
+        .iter()
+        .any(|&(addr, original)| read(mem, addr) != original)
+    {
         log!("Rayman Fiesta Run: not the code expected (another version?), so not fitted to the screen.");
         return;
     }
@@ -74,17 +77,35 @@ pub fn fit_screen(bundle_id: &str, window: Option<&Window>, mem: &mut Mem) {
 fn layout_and_pixels(width: u32, height: u32) -> [u32; 4] {
     let (layout_w, layout_h) = LAYOUT;
     if width * layout_h > height * layout_w {
-        [layout_h, (layout_h * width + height / 2) / height, height, width]
+        [
+            layout_h,
+            (layout_h * width + height / 2) / height,
+            height,
+            width,
+        ]
     } else {
-        [(layout_w * height + width / 2) / width, layout_w, height, width]
+        [
+            (layout_w * height + width / 2) / width,
+            layout_w,
+            height,
+            width,
+        ]
     }
 }
 
 /// The Thumb-2 `movw r0, #value` (encoding T3).
 fn movw_r0(value: u32) -> [u16; 2] {
     assert!(value <= 0xffff);
-    let (imm4, i, imm3, imm8) = (value >> 12, (value >> 11) & 1, (value >> 8) & 7, value & 0xff);
-    [(0xf240 | (i << 10) | imm4) as u16, ((imm3 << 12) | imm8) as u16]
+    let (imm4, i, imm3, imm8) = (
+        value >> 12,
+        (value >> 11) & 1,
+        (value >> 8) & 7,
+        value & 0xff,
+    );
+    [
+        (0xf240 | (i << 10) | imm4) as u16,
+        ((imm3 << 12) | imm8) as u16,
+    ]
 }
 
 #[cfg(test)]

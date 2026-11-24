@@ -9,10 +9,10 @@
 //! via the re-exports one level up.
 
 mod airplay_sdk;
-mod rayman_fiesta_run;
 pub mod app_picker;
 mod mutex;
 mod nullable_box;
+mod rayman_fiesta_run;
 
 use crate::abi::{CallFromHost, GuestFunction};
 use crate::audio::openal::OpenALManager;
@@ -1712,7 +1712,8 @@ impl Environment {
         self.threads[self.current_thread].host_context = old_context.take();
         *old_context = Some(new_host_ctx);
         self.current_thread = new_thread;
-        self.cpu.set_tpidruro(self.threads[new_thread].tls.to_bits());
+        self.cpu
+            .set_tpidruro(self.threads[new_thread].tls.to_bits());
     }
 
     #[cold]

@@ -31,9 +31,9 @@ pub struct touchHLE_MgbaContext {
     pub fpscr: u32,
 }
 
-/// The FPSCR a thread starts with: flush-to-zero on, as iOS sets it (Apple's
-/// TN2293). Mirrors `TOUCHHLE_DEFAULT_FPSCR` in `wrapper.h`.
-pub const DEFAULT_FPSCR: u32 = 0x0100_0000;
+/// The FPSCR a thread starts with: RunFast mode (flush-to-zero and default
+/// NaN). Mirrors `TOUCHHLE_DEFAULT_FPSCR` in `wrapper.h`, which says why.
+pub const DEFAULT_FPSCR: u32 = 0x0300_0000;
 
 impl Default for touchHLE_MgbaContext {
     fn default() -> Self {

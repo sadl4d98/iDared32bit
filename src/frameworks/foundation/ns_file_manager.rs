@@ -36,9 +36,18 @@ pub const NSFileTypeDirectory: &str = "NSFileTypeDirectory";
 pub const NSFileTypeRegular: &str = "NSFileTypeRegular";
 
 pub const CONSTANTS: ConstantExports = &[
-    ("_NSFileCreationDate", HostConstant::NSString("NSFileCreationDate")),
-    ("_NSFilePosixPermissions", HostConstant::NSString("NSFilePosixPermissions")),
-    ("_NSURLIsExcludedFromBackupKey", HostConstant::NSString("NSURLIsExcludedFromBackupKey")),
+    (
+        "_NSFileCreationDate",
+        HostConstant::NSString("NSFileCreationDate"),
+    ),
+    (
+        "_NSFilePosixPermissions",
+        HostConstant::NSString("NSFilePosixPermissions"),
+    ),
+    (
+        "_NSURLIsExcludedFromBackupKey",
+        HostConstant::NSString("NSURLIsExcludedFromBackupKey"),
+    ),
     (
         "_NSFileModificationDate",
         HostConstant::NSString(NSFileModificationDate),

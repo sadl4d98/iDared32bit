@@ -30,8 +30,14 @@ pub const CONSTANTS: ConstantExports = &[
         "_NSMetadataQueryUbiquitousDataScope",
         HostConstant::NSString("NSMetadataQueryUbiquitousDataScope"),
     ),
-    ("_NSMetadataItemFSNameKey", HostConstant::NSString("kMDItemFSName")),
-    ("_NSMetadataItemURLKey", HostConstant::NSString("kMDItemURL")),
+    (
+        "_NSMetadataItemFSNameKey",
+        HostConstant::NSString("kMDItemFSName"),
+    ),
+    (
+        "_NSMetadataItemURLKey",
+        HostConstant::NSString("kMDItemURL"),
+    ),
 ];
 
 pub const CLASSES: ClassExports = objc_classes! {

@@ -78,7 +78,7 @@ fn pthread_key_create(
     };
     keys[idx] = Some(destructor);
     let key: pthread_key_t = (idx + 1).try_into().unwrap(); // PTHREAD_KEYS_MAX is small
-    // A new key has no value in any thread, whatever a deleted one left.
+                                                            // A new key has no value in any thread, whatever a deleted one left.
     for i in 0..env.threads.len() {
         let slot = env.threads[i].tls + key;
         env.mem.write(slot, MutVoidPtr::null());

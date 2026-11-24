@@ -1835,6 +1835,16 @@ const QUICK_OPTIONS: &[QuickOption] = &[
         },
         desktop_only: false,
     },
+    QuickOption {
+        label: "CPU",
+        footer: "JIT is much faster, and needs JIT enabled (e.g. by StikDebug); Auto uses it whenever it is.",
+        kind: QuickOptionKind::Choice(&[
+            ("Auto", None),
+            ("JIT", Some("--cpu=jit")),
+            ("Interpreter", Some("--cpu=interpreter")),
+        ]),
+        desktop_only: false,
+    },
 ];
 
 /// The quick options shown on this platform.
@@ -2011,7 +2021,9 @@ mod tests {
         values[2] = 1; // Network access: on
         values[3] = 0; // Analog sticks for tilt controls: off
         values[4] = 2; // Device: iPad
-        let fit_screen = quick_options().position(|o| o.label == "Fit screen").unwrap();
+        let fit_screen = quick_options()
+            .position(|o| o.label == "Fit screen")
+            .unwrap();
         values[fit_screen] = 2; // Fit screen: on
         assert_eq!(
             quick_option_args(&values).collect::<Vec<_>>(),

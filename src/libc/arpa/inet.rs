@@ -83,7 +83,9 @@ fn inet_pton(env: &mut Environment, af: i32, src: ConstPtr<u8>, dst: MutVoidPtr)
         let Ok(address) = str.parse::<Ipv6Addr>() else {
             return 0;
         };
-        env.mem.bytes_at_mut(dst.cast(), 16).copy_from_slice(&address.octets());
+        env.mem
+            .bytes_at_mut(dst.cast(), 16)
+            .copy_from_slice(&address.octets());
         return 1;
     }
     assert_eq!(af, AF_INET);

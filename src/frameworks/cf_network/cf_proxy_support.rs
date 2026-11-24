@@ -10,9 +10,18 @@ use crate::objc::{id, msg_class};
 use crate::Environment;
 
 pub const CONSTANTS: ConstantExports = &[
-    ("_kCFNetworkProxiesHTTPProxy", HostConstant::NSString("HTTPProxy")),
-    ("_kCFNetworkProxiesHTTPPort", HostConstant::NSString("HTTPPort")),
-    ("_kCFNetworkProxiesHTTPEnable", HostConstant::NSString("HTTPEnable")),
+    (
+        "_kCFNetworkProxiesHTTPProxy",
+        HostConstant::NSString("HTTPProxy"),
+    ),
+    (
+        "_kCFNetworkProxiesHTTPPort",
+        HostConstant::NSString("HTTPPort"),
+    ),
+    (
+        "_kCFNetworkProxiesHTTPEnable",
+        HostConstant::NSString("HTTPEnable"),
+    ),
 ];
 
 /// Returns a `CFDictionaryRef` the caller owns.

@@ -525,7 +525,10 @@ impl Dyld {
             }) {
                 // Apps that run on older iOS link these weakly and test for
                 // them (`[NSURLSession class] == nil`), as we're older.
-                log!("Linking class {} as nil: it's from iOS 7 and later", class_name.unwrap());
+                log!(
+                    "Linking class {} as nil: it's from iOS 7 and later",
+                    class_name.unwrap()
+                );
                 nil.cast().cast_const()
             } else if let Some(name) = name.strip_prefix("_OBJC_CLASS_$_") {
                 objc.link_class(name, /* is_metaclass: */ false, mem)

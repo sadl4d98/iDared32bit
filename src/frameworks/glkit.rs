@@ -347,7 +347,10 @@ fn fit_to_screen(env: &mut Environment, this: id) {
     let (usual_w, usual_h) = window.device_family().portrait_size();
     let (fit_w, fit_h) = window.portrait_size();
     let frame: CGRect = msg![env; this frame];
-    let size = (frame.size.width.round() as u32, frame.size.height.round() as u32);
+    let size = (
+        frame.size.width.round() as u32,
+        frame.size.height.round() as u32,
+    );
     let new_size = if size == (usual_w, usual_h) {
         (fit_w, fit_h)
     } else if size == (usual_h, usual_w) {
@@ -362,7 +365,12 @@ fn fit_to_screen(env: &mut Environment, this: id) {
             height: new_size.1 as f32,
         },
     };
-    log_dbg!("GLKView {:?}: {:?} -> {:?} to fill the fitted screen", this, frame, new_frame);
+    log_dbg!(
+        "GLKView {:?}: {:?} -> {:?} to fill the fitted screen",
+        this,
+        frame,
+        new_frame
+    );
     () = msg![env; this setFrame:new_frame];
 }
 
@@ -395,8 +403,16 @@ fn ensure_drawable(env: &mut Environment, this: id) {
     delete_drawable(env, this);
 
     let (framebuffer, color_renderbuffer) = {
-        let window = env.window.as_mut().expect("OpenGL ES is not supported in headless mode");
-        let mut gles = sync_context(&mut env.framework_state.opengles, &mut env.objc, window, env.current_thread);
+        let window = env
+            .window
+            .as_mut()
+            .expect("OpenGL ES is not supported in headless mode");
+        let mut gles = sync_context(
+            &mut env.framework_state.opengles,
+            &mut env.objc,
+            window,
+            env.current_thread,
+        );
         let (mut framebuffer, mut color_renderbuffer) = (0, 0);
         unsafe {
             gles.GenFramebuffersOES(1, &mut framebuffer);
@@ -408,10 +424,16 @@ fn ensure_drawable(env: &mut Environment, this: id) {
     };
 
     let layer: id = msg![env; this layer];
-    let _: bool = msg![env; context renderbufferStorage:(gles11::RENDERBUFFER_OES) fromDrawable:layer];
+    let _: bool =
+        msg![env; context renderbufferStorage:(gles11::RENDERBUFFER_OES) fromDrawable:layer];
 
     let window = env.window.as_mut().unwrap();
-    let mut gles = sync_context(&mut env.framework_state.opengles, &mut env.objc, window, env.current_thread);
+    let mut gles = sync_context(
+        &mut env.framework_state.opengles,
+        &mut env.objc,
+        window,
+        env.current_thread,
+    );
     let (mut width, mut height, mut depth_renderbuffer) = (0, 0, 0);
     unsafe {
         gles.FramebufferRenderbufferOES(
@@ -420,8 +442,16 @@ fn ensure_drawable(env: &mut Environment, this: id) {
             gles11::RENDERBUFFER_OES,
             color_renderbuffer,
         );
-        gles.GetRenderbufferParameterivOES(gles11::RENDERBUFFER_OES, gles11::RENDERBUFFER_WIDTH_OES, &mut width);
-        gles.GetRenderbufferParameterivOES(gles11::RENDERBUFFER_OES, gles11::RENDERBUFFER_HEIGHT_OES, &mut height);
+        gles.GetRenderbufferParameterivOES(
+            gles11::RENDERBUFFER_OES,
+            gles11::RENDERBUFFER_WIDTH_OES,
+            &mut width,
+        );
+        gles.GetRenderbufferParameterivOES(
+            gles11::RENDERBUFFER_OES,
+            gles11::RENDERBUFFER_HEIGHT_OES,
+            &mut height,
+        );
         if depth_format != 0 {
             let internal_format = if depth_format == GLK_VIEW_DRAWABLE_DEPTH_FORMAT_16 {
                 gles11::DEPTH_COMPONENT16_OES
@@ -440,7 +470,11 @@ fn ensure_drawable(env: &mut Environment, this: id) {
         }
         let status = gles.CheckFramebufferStatusOES(gles11::FRAMEBUFFER_OES);
         if status != gles11::FRAMEBUFFER_COMPLETE_OES {
-            log!("Warning: GLKView {:?} framebuffer incomplete: {:#x}", this, status);
+            log!(
+                "Warning: GLKView {:?} framebuffer incomplete: {:#x}",
+                this,
+                status
+            );
         }
         // presentRenderbuffer: presents whichever renderbuffer is bound.
         gles.BindRenderbufferOES(gles11::RENDERBUFFER_OES, color_renderbuffer);
@@ -469,7 +503,12 @@ fn bind_drawable(env: &mut Environment, this: id) {
         return;
     }
     let window = env.window.as_mut().unwrap();
-    let mut gles = sync_context(&mut env.framework_state.opengles, &mut env.objc, window, env.current_thread);
+    let mut gles = sync_context(
+        &mut env.framework_state.opengles,
+        &mut env.objc,
+        window,
+        env.current_thread,
+    );
     unsafe {
         gles.BindFramebufferOES(gles11::FRAMEBUFFER_OES, framebuffer);
         gles.Viewport(0, 0, width, height);
@@ -489,7 +528,12 @@ fn delete_drawable(env: &mut Environment, this: id) {
     }
     let _: bool = msg_class![env; EAGLContext setCurrentContext:context];
     let window = env.window.as_mut().unwrap();
-    let mut gles = sync_context(&mut env.framework_state.opengles, &mut env.objc, window, env.current_thread);
+    let mut gles = sync_context(
+        &mut env.framework_state.opengles,
+        &mut env.objc,
+        window,
+        env.current_thread,
+    );
     unsafe {
         gles.DeleteFramebuffersOES(1, &buffers[0]);
         gles.DeleteRenderbuffersOES(2, buffers[1..].as_ptr());
@@ -497,7 +541,11 @@ fn delete_drawable(env: &mut Environment, this: id) {
 }
 
 fn preferred_fps(env: &mut Environment, this: id) -> NSInteger {
-    match env.objc.borrow::<GLKViewControllerHostObject>(this).preferred_fps {
+    match env
+        .objc
+        .borrow::<GLKViewControllerHostObject>(this)
+        .preferred_fps
+    {
         0 => 30,
         fps => fps,
     }
@@ -518,11 +566,18 @@ fn start_timer(env: &mut Environment, this: id) {
                                                                   selector:sel
                                                                   userInfo:nil
                                                                    repeats:true];
-    env.objc.borrow_mut::<GLKViewControllerHostObject>(this).timer = timer;
+    env.objc
+        .borrow_mut::<GLKViewControllerHostObject>(this)
+        .timer = timer;
 }
 
 fn tick(env: &mut Environment, this: id) {
-    let &GLKViewControllerHostObject { paused, delegate, last_update, .. } = env.objc.borrow(this);
+    let &GLKViewControllerHostObject {
+        paused,
+        delegate,
+        last_update,
+        ..
+    } = env.objc.borrow(this);
     // Nothing to do until the view has been loaded, by whatever asks for it.
     if paused || !msg![env; this isViewLoaded] {
         return;
@@ -530,12 +585,19 @@ fn tick(env: &mut Environment, this: id) {
 
     let now = Instant::now();
     let default_interval = frame_interval(env, this);
-    env.objc.borrow_mut::<GLKViewControllerHostObject>(this).time_since_last_update =
-        last_update.map_or(default_interval, |t| (now - t).as_secs_f64());
-    env.objc.borrow_mut::<GLKViewControllerHostObject>(this).last_update = Some(now);
+    env.objc
+        .borrow_mut::<GLKViewControllerHostObject>(this)
+        .time_since_last_update = last_update.map_or(default_interval, |t| (now - t).as_secs_f64());
+    env.objc
+        .borrow_mut::<GLKViewControllerHostObject>(this)
+        .last_update = Some(now);
 
-    let delegate_update = env.objc.register_host_selector("glkViewControllerUpdate:".to_string(), &mut env.mem);
-    let update = env.objc.register_host_selector("update".to_string(), &mut env.mem);
+    let delegate_update = env
+        .objc
+        .register_host_selector("glkViewControllerUpdate:".to_string(), &mut env.mem);
+    let update = env
+        .objc
+        .register_host_selector("update".to_string(), &mut env.mem);
     if delegate != nil && msg![env; delegate respondsToSelector:delegate_update] {
         () = msg_send(env, (delegate, delegate_update, this));
     } else if msg![env; this respondsToSelector:update] {
@@ -548,13 +610,18 @@ fn tick(env: &mut Environment, this: id) {
         return;
     }
     // On iOS the controller is the view's delegate unless told otherwise.
-    let draw_in_rect = env.objc.register_host_selector("glkView:drawInRect:".to_string(), &mut env.mem);
+    let draw_in_rect = env
+        .objc
+        .register_host_selector("glkView:drawInRect:".to_string(), &mut env.mem);
     let view_delegate: id = msg![env; view delegate];
     if view_delegate == nil && msg![env; this respondsToSelector:draw_in_rect] {
         () = msg![env; view setDelegate:this];
     }
 
-    let last_draw = env.objc.borrow::<GLKViewControllerHostObject>(this).last_draw;
+    let last_draw = env
+        .objc
+        .borrow::<GLKViewControllerHostObject>(this)
+        .last_draw;
     let host_object = env.objc.borrow_mut::<GLKViewControllerHostObject>(this);
     host_object.time_since_last_draw = last_draw.map_or(0.0, |t| (now - t).as_secs_f64());
     host_object.last_draw = Some(now);

@@ -5,8 +5,8 @@
  */
 //! Parsing and management of user-configurable options, e.g. for input methods.
 
-use crate::gles::GLESImplementation;
 use crate::cpu::CpuBackend;
+use crate::gles::GLESImplementation;
 use crate::window::{DeviceFamily, DeviceOrientation, FitScreen};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};

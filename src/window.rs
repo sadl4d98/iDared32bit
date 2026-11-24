@@ -431,7 +431,13 @@ impl Window {
         if Self::rotatable_fullscreen() && options.fit_screen == Some(FitScreen::Device) {
             let (w, h) = window.drawable_size();
             let (dw, dh) = video_ctx.display_bounds(0).unwrap().size();
-            log!("Display bounds {}x{}, drawn into at {}x{} pixels.", dw, dh, w, h);
+            log!(
+                "Display bounds {}x{}, drawn into at {}x{} pixels.",
+                dw,
+                dh,
+                w,
+                h
+            );
             fitted_screen_size = fit(w.max(h) as f32 / w.min(h).max(1) as f32);
         }
 
@@ -1810,7 +1816,9 @@ impl Window {
         }
 
         let (screen_width, screen_height) = self.window.drawable_size();
-        if self.logged_drawable_size.replace((screen_width, screen_height))
+        if self
+            .logged_drawable_size
+            .replace((screen_width, screen_height))
             != (screen_width, screen_height)
         {
             log!("Drawing into {}x{} pixels.", screen_width, screen_height);

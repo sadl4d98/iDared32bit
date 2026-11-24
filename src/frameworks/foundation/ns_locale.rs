@@ -21,7 +21,10 @@ const NSLocaleLanguageCode: &str = "NSLocaleLanguageCode";
 const NSLocaleIdentifier: &str = "NSLocaleIdentifier";
 
 pub const CONSTANTS: ConstantExports = &[
-    ("_NSLocaleCurrencySymbol", HostConstant::NSString("currencySymbol")),
+    (
+        "_NSLocaleCurrencySymbol",
+        HostConstant::NSString("currencySymbol"),
+    ),
     (
         "_NSLocaleCountryCode",
         HostConstant::NSString(NSLocaleCountryCode),
