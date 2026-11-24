@@ -1815,6 +1815,16 @@ const QUICK_OPTIONS: &[QuickOption] = &[
         ]),
         desktop_only: false,
     },
+    QuickOption {
+        label: "Exit button",
+        footer: "The cross beside a game that returns here. Hidden lets a game fill the screen; close the app to leave it.",
+        kind: QuickOptionKind::Choice(&[
+            ("Default", None),
+            ("Shown", Some("--home-button")),
+            ("Hidden", Some("--no-home-button")),
+        ]),
+        desktop_only: false,
+    },
 ];
 
 /// The quick options shown on this platform.

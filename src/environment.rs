@@ -761,10 +761,12 @@ impl Environment {
             panic_cell: Rc::new(Cell::new(None)),
         };
 
-        // Apps get the on-screen Home button (where there is one), the app
-        // picker doesn't.
+        // Apps get the on-screen Home button (where there is one, and unless
+        // it's turned off), the app picker doesn't.
         if let Some(window) = env.window.as_mut() {
-            window.enable_on_screen_home_button();
+            if env.options.home_button {
+                window.enable_on_screen_home_button();
+            }
         }
 
         if env.options.dumping_options.any() {

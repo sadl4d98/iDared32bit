@@ -56,6 +56,16 @@ Device options:
         side, e.g. --fit-screen=1.42. --fit-screen=off turns it off again,
         e.g. over a game's default options.
 
+    --no-home-button
+    --home-button
+        On iOS, a game gets an on-screen Home button (a cross in the bars
+        beside it) that returns to the app picker. If there's no room for it,
+        the game is made a little smaller to make room. --no-home-button
+        turns it off, so a game that fills the screen (see --fit-screen) keeps
+        all of it; the way back is then to close iDared 32bit in the app
+        switcher. --home-button turns it back on over a game's default
+        options.
+
 Game controller options:
     --deadzone=...
         Configures the size of the \"dead zone\" for analog stick inputs.

@@ -38,6 +38,8 @@ pub struct Options {
     pub fullscreen: bool,
     pub device_family: Option<DeviceFamily>,
     pub fit_screen: Option<FitScreen>,
+    /// `--no-home-button` turns off the on-screen Home button.
+    pub home_button: bool,
     pub initial_orientation: DeviceOrientation,
     pub scale_hack: NonZeroU32,
     pub deadzone: f32,
@@ -74,6 +76,7 @@ impl Default for Options {
             fullscreen: false,
             device_family: None,
             fit_screen: None,
+            home_button: true,
             initial_orientation: DeviceOrientation::Portrait,
             scale_hack: NonZeroU32::new(1).unwrap(),
             analog_stick_tilt_controls: true,
@@ -132,6 +135,10 @@ impl Options {
             let parsed =
                 DeviceFamily::try_from(value).map_err(|_| "Invalid device family".to_string())?;
             self.device_family = Some(parsed);
+        } else if arg == "--no-home-button" {
+            self.home_button = false;
+        } else if arg == "--home-button" {
+            self.home_button = true;
         } else if arg == "--fit-screen" {
             self.fit_screen = Some(FitScreen::Device);
         } else if arg == "--fit-screen=off" {
