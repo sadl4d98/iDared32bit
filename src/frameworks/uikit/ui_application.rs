@@ -176,7 +176,7 @@ pub const CLASSES: ClassExports = objc_classes! {
     // The frame is in screen coordinates, which are always portrait on
     // iPhone OS, so in landscape the bar is a strip down one side.
     let bar_height = 20.0;
-    let (width, height) = env.window.as_ref().unwrap().device_family().portrait_size();
+    let (width, height) = env.window.as_ref().unwrap().portrait_size();
     let (width, height) = (width as f32, height as f32);
     let current_rotation = env.window.as_ref().unwrap().current_rotation();
 

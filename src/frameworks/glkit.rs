@@ -16,7 +16,7 @@
 //! - [GLKViewController](https://developer.apple.com/documentation/glkit/glkviewcontroller)
 
 use crate::dyld::HostDylib;
-use crate::frameworks::core_graphics::CGRect;
+use crate::frameworks::core_graphics::{CGRect, CGSize};
 use crate::frameworks::foundation::ns_timer::set_time_interval;
 use crate::frameworks::foundation::{NSInteger, NSTimeInterval};
 use crate::frameworks::opengles::sync_context;
@@ -116,7 +116,9 @@ pub const CLASSES: ClassExports = objc_classes! {
 }
 
 - (id)initWithCoder:(id)coder {
-    msg_super![env; this initWithCoder:coder]
+    let this: id = msg_super![env; this initWithCoder:coder];
+    fit_to_screen(env, this);
+    this
 }
 
 - (())dealloc {
@@ -332,6 +334,37 @@ pub const CLASSES: ClassExports = objc_classes! {
 @end
 
 };
+
+/// With `--fit-screen`, a GLKView made in Interface Builder to fill the
+/// device's usual screen is made to fill the fitted one instead, straight
+/// away: games read its size before the view is put in the window (on a real
+/// iPhone 5 they load another nib, made for its screen, for this reason).
+fn fit_to_screen(env: &mut Environment, this: id) {
+    let window = env.window();
+    if !window.is_screen_fitted() {
+        return;
+    }
+    let (usual_w, usual_h) = window.device_family().portrait_size();
+    let (fit_w, fit_h) = window.portrait_size();
+    let frame: CGRect = msg![env; this frame];
+    let size = (frame.size.width.round() as u32, frame.size.height.round() as u32);
+    let new_size = if size == (usual_w, usual_h) {
+        (fit_w, fit_h)
+    } else if size == (usual_h, usual_w) {
+        (fit_h, fit_w)
+    } else {
+        return;
+    };
+    let new_frame = CGRect {
+        origin: frame.origin,
+        size: CGSize {
+            width: new_size.0 as f32,
+            height: new_size.1 as f32,
+        },
+    };
+    log_dbg!("GLKView {:?}: {:?} -> {:?} to fill the fitted screen", this, frame, new_frame);
+    () = msg![env; this setFrame:new_frame];
+}
 
 /// Makes the framebuffer if there isn't one, or remakes it if the view's
 /// size has changed.

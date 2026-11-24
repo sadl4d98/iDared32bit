@@ -9,6 +9,7 @@
 //! via the re-exports one level up.
 
 mod airplay_sdk;
+mod rayman_fiesta_run;
 pub mod app_picker;
 mod mutex;
 mod nullable_box;
@@ -490,6 +491,7 @@ impl Environment {
 
         // This needs the executable's code as it was before linking.
         airplay_sdk::fix_code_hash(&executable, &mut mem);
+        rayman_fiesta_run::fit_screen(bundle.bundle_identifier(), window.as_deref(), &mut mem);
 
         // From iOS 5 on, libgcc_s is part of libSystem, so apps built for it
         // (e.g. Rayman Fiesta Run) don't link it by name, yet they and

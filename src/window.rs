@@ -58,6 +58,16 @@ impl DeviceFamily {
         }
     }
 }
+/// `--fit-screen`: make the emulated screen another shape, so a game fills a
+/// device that isn't the shape of the one it was made for.
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum FitScreen {
+    /// The shape of the device iDared 32bit is running on.
+    Device,
+    /// Long side over short side, e.g. 1.42.
+    Ratio(f32),
+}
+
 impl TryFrom<u64> for DeviceFamily {
     type Error = ();
     fn try_from(value: u64) -> Result<Self, Self::Error> {
@@ -359,6 +369,18 @@ impl Window {
         let device_family = options.device_family.unwrap_or(DeviceFamily::iPhone);
         let device_orientation = options.initial_orientation;
         let fullscreen = options.fullscreen;
+        let fitted_screen_size = options.fit_screen.and_then(|fit| {
+            let ratio = match fit {
+                FitScreen::Ratio(ratio) => ratio,
+                FitScreen::Device => {
+                    let (w, h) = video_ctx.display_bounds(0).unwrap().size();
+                    w.max(h) as f32 / w.min(h) as f32
+                }
+            };
+            let size = fitted_screen_size(device_family.portrait_size(), ratio);
+            log!("Fitting the screen to {:.3}:1: {:?} points", ratio, size);
+            size
+        });
 
         let mut window = if Self::rotatable_fullscreen() {
             // Without this, SDL will force fullscreen mode to be portrait.
@@ -383,7 +405,7 @@ impl Window {
             window
         } else {
             let (width, height) = size_for_orientation(
-                device_family.portrait_size(),
+                fitted_screen_size.unwrap_or_else(|| device_family.portrait_size()),
                 device_orientation,
                 scale_hack,
             );
@@ -446,7 +468,7 @@ impl Window {
             internal_gl_ins: None,
             splash_image: launch_image,
             device_family,
-            screen_size: None,
+            screen_size: fitted_screen_size,
             screen_safe_insets: (0.0, 0.0, 0.0, 0.0),
             screen_scale: 1.0,
             hidpi_ui: false,
@@ -1944,6 +1966,22 @@ impl Window {
     }
 }
 
+/// The emulated screen for `--fit-screen`: the device family's portrait
+/// screen made `ratio` (long side over short side) by lengthening one side,
+/// so the app never gets less room than it was made for. [None] if it's
+/// already that shape.
+fn fitted_screen_size((width, height): (u32, u32), ratio: f32) -> Option<(u32, u32)> {
+    let usual = height as f32 / width as f32;
+    if !(ratio >= 1.0) || (ratio - usual).abs() < 0.01 {
+        return None;
+    }
+    Some(if ratio > usual {
+        (width, (width as f32 * ratio).round() as u32)
+    } else {
+        ((height as f32 / ratio).round() as u32, height)
+    })
+}
+
 /// The emulated screen for a portrait device of `device` size in points: as
 /// wide as the device family's (a third wider on an iPad, so things are 3/4
 /// the size and not huge), and the same shape as the device. [None] if that's
@@ -2336,5 +2374,24 @@ impl DeviceVibrator {
 impl Drop for DeviceVibrator {
     fn drop(&mut self) {
         unsafe { sdl2::sys::SDL_HapticClose(self.haptic) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fitted_screen_size;
+
+    #[test]
+    fn fitted_screen_sizes() {
+        // iPhone (320x480, 1.5:1) on the iPhone Duo's inner screen (1.42:1):
+        // wider, same height.
+        assert_eq!(fitted_screen_size((320, 480), 1.42), Some((338, 480)));
+        // On a 19.5:9 iPhone: taller, same width.
+        assert_eq!(fitted_screen_size((320, 480), 2.1667), Some((320, 693)));
+        // Already that shape, or nonsense.
+        assert_eq!(fitted_screen_size((320, 480), 1.5), None);
+        assert_eq!(fitted_screen_size((320, 480), f32::NAN), None);
+        // iPad (768x1024, 1.33:1) on the same inner screen: taller.
+        assert_eq!(fitted_screen_size((768, 1024), 1.42), Some((768, 1091)));
     }
 }

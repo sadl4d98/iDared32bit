@@ -6,7 +6,7 @@
 //! Parsing and management of user-configurable options, e.g. for input methods.
 
 use crate::gles::GLESImplementation;
-use crate::window::{DeviceFamily, DeviceOrientation};
+use crate::window::{DeviceFamily, DeviceOrientation, FitScreen};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -36,6 +36,7 @@ pub enum Button {
 pub struct Options {
     pub fullscreen: bool,
     pub device_family: Option<DeviceFamily>,
+    pub fit_screen: Option<FitScreen>,
     pub initial_orientation: DeviceOrientation,
     pub scale_hack: NonZeroU32,
     pub deadzone: f32,
@@ -69,6 +70,7 @@ impl Default for Options {
         Options {
             fullscreen: false,
             device_family: None,
+            fit_screen: None,
             initial_orientation: DeviceOrientation::Portrait,
             scale_hack: NonZeroU32::new(1).unwrap(),
             analog_stick_tilt_controls: true,
@@ -126,6 +128,17 @@ impl Options {
             let parsed =
                 DeviceFamily::try_from(value).map_err(|_| "Invalid device family".to_string())?;
             self.device_family = Some(parsed);
+        } else if arg == "--fit-screen" {
+            self.fit_screen = Some(FitScreen::Device);
+        } else if arg == "--fit-screen=off" {
+            self.fit_screen = None;
+        } else if let Some(value) = arg.strip_prefix("--fit-screen=") {
+            let ratio: f32 = value
+                .parse()
+                .ok()
+                .filter(|&r: &f32| r >= 1.0)
+                .ok_or_else(|| "Invalid screen ratio".to_string())?;
+            self.fit_screen = Some(FitScreen::Ratio(ratio));
         } else if let Some(value) = arg.strip_prefix("--scale-hack=") {
             self.scale_hack = value
                 .parse()

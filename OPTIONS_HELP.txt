@@ -43,6 +43,19 @@ Device options:
 
         Accepted values are "iphone" and "ipad" respectively.
 
+    --fit-screen
+    --fit-screen=...
+        Make the emulated screen the shape of this device's screen, so the
+        game fills it instead of being shown with bars at the sides or the
+        top and bottom. One side of the usual screen (320x480 points on an
+        iPhone, 768x1024 on an iPad) is lengthened, never shortened. Only for
+        games that lay themselves out to the screen's size; others may show
+        a gap or be drawn off-centre.
+
+        A value gives the shape instead, as the long side over the short
+        side, e.g. --fit-screen=1.42. --fit-screen=off turns it off again,
+        e.g. over a game's default options.
+
 Game controller options:
     --deadzone=...
         Configures the size of the \"dead zone\" for analog stick inputs.

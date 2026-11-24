@@ -1755,6 +1755,16 @@ const QUICK_OPTIONS: &[QuickOption] = &[
         desktop_only: false,
     },
     QuickOption {
+        label: "Fit screen",
+        footer: "Fill the screen for games that lay themselves out to its size (some may not).",
+        kind: QuickOptionKind::Choice(&[
+            ("Default", None),
+            ("Off", Some("--fit-screen=off")),
+            ("On", Some("--fit-screen")),
+        ]),
+        desktop_only: false,
+    },
+    QuickOption {
         label: "Orientation",
         footer: "For games that are in the wrong orientation.",
         kind: QuickOptionKind::Choice(&[
