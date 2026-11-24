@@ -1755,16 +1755,6 @@ const QUICK_OPTIONS: &[QuickOption] = &[
         desktop_only: false,
     },
     QuickOption {
-        label: "Fit screen",
-        footer: "Fill the screen for games that lay themselves out to its size (some may not).",
-        kind: QuickOptionKind::Choice(&[
-            ("Default", None),
-            ("Off", Some("--fit-screen=off")),
-            ("On", Some("--fit-screen")),
-        ]),
-        desktop_only: false,
-    },
-    QuickOption {
         label: "Orientation",
         footer: "For games that are in the wrong orientation.",
         kind: QuickOptionKind::Choice(&[
@@ -1814,6 +1804,16 @@ const QUICK_OPTIONS: &[QuickOption] = &[
             off: None,
         },
         desktop_only: true,
+    },
+    QuickOption {
+        label: "Fit screen",
+        footer: "Fill the screen for games that lay themselves out to its size (some may not).",
+        kind: QuickOptionKind::Choice(&[
+            ("Default", None),
+            ("Off", Some("--fit-screen=off")),
+            ("On", Some("--fit-screen")),
+        ]),
+        desktop_only: false,
     },
 ];
 
@@ -1991,6 +1991,8 @@ mod tests {
         values[2] = 1; // Network access: on
         values[3] = 0; // Analog sticks for tilt controls: off
         values[4] = 2; // Device: iPad
+        let fit_screen = quick_options().position(|o| o.label == "Fit screen").unwrap();
+        values[fit_screen] = 2; // Fit screen: on
         assert_eq!(
             quick_option_args(&values).collect::<Vec<_>>(),
             [
@@ -1999,6 +2001,7 @@ mod tests {
                 "--allow-network-access",
                 "--disable-analog-stick-tilt-controls",
                 "--device-family=ipad",
+                "--fit-screen",
             ],
         );
     }
