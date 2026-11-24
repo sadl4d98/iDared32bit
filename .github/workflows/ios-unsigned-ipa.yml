@@ -34,6 +34,19 @@ jobs:
           newest=$(ls -d /Applications/Xcode_[0-9]*.app | sort -V | tail -1)
           sudo xcode-select -s "$newest"
           xcodebuild -version
+      # Dynarmic, the JIT CPU backend, needs Boost's headers, which the
+      # wrapper's build script finds in vendor/boost.
+      - name: Try to get cached copy of Boost
+        id: cache-boost
+        uses: actions/cache@v4
+        with:
+          path: vendor/boost
+          key: boost_1_81_0
+      - if: ${{ steps.cache-boost.outputs.cache-hit != 'true' }}
+        name: Download Boost
+        run: |
+          curl -L -O "https://archives.boost.io/release/1.81.0/source/boost_1_81_0.tar.gz"
+          mkdir -p vendor && tar xzf boost_1_81_0.tar.gz -C vendor && mv vendor/boost_1_81_0 vendor/boost
       - name: Install the iOS Rust toolchain
         run: rustup target add aarch64-apple-ios
       - name: Build the app

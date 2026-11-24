@@ -58,3 +58,4 @@ DUMP.txt
 
 /Local.xcconfig
 /target-*/
+/vendor/boost/
