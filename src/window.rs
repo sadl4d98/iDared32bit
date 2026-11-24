@@ -394,13 +394,16 @@ impl Window {
             set_sdl2_orientation(device_orientation);
             let screen_size = video_ctx.display_bounds(0).unwrap().size();
             let (width, height) = rotate_fullscreen_size(device_orientation, screen_size);
-            let window = video_ctx
-                .window(title, width, height)
-                .fullscreen()
-                .opengl()
-                .build()
-                .unwrap();
-            window
+            let mut builder = video_ctx.window(title, width, height);
+            builder.fullscreen().opengl();
+            // Draw at the screen's own resolution rather than one pixel per
+            // point, which on iOS is far fewer (951x669 on the iPhone Duo's
+            // inner screen, against 2000x1407): the scale hack's extra
+            // resolution then reaches the screen instead of being shrunk away.
+            if cfg!(target_os = "ios") {
+                builder.allow_highdpi();
+            }
+            builder.build().unwrap()
         } else if fullscreen {
             let (width, height) = video_ctx.display_bounds(0).unwrap().size();
             let window = video_ctx
