@@ -272,6 +272,8 @@ pub struct Window {
     device_family: DeviceFamily,
     /// The emulated screen's size in portrait, if it's not the device family's
     /// (see [Self::fit_screen_to_device]).
+    /// The drawable size last logged by [Self::viewport], to log changes.
+    logged_drawable_size: std::cell::Cell<(u32, u32)>,
     screen_size: Option<(u32, u32)>,
     /// The emulated screen's safe area insets (top, left, bottom, right) in
     /// its own points, e.g. to keep clear of the Dynamic Island.
@@ -369,18 +371,23 @@ impl Window {
         let device_family = options.device_family.unwrap_or(DeviceFamily::iPhone);
         let device_orientation = options.initial_orientation;
         let fullscreen = options.fullscreen;
-        let fitted_screen_size = options.fit_screen.and_then(|fit| {
-            let ratio = match fit {
-                FitScreen::Ratio(ratio) => ratio,
-                FitScreen::Device => {
-                    let (w, h) = video_ctx.display_bounds(0).unwrap().size();
-                    w.max(h) as f32 / w.min(h) as f32
-                }
-            };
+        let fit = |ratio: f32| {
             let size = fitted_screen_size(device_family.portrait_size(), ratio);
             log!("Fitting the screen to {:.3}:1: {:?} points", ratio, size);
             size
-        });
+        };
+        // On a phone, the device's shape is only known for sure once the
+        // window exists (below): what's drawn into can be another shape than
+        // the display's bounds say, as with an app inside LiveContainer on
+        // the iPhone Duo's inner screen.
+        let mut fitted_screen_size = match options.fit_screen {
+            Some(FitScreen::Ratio(ratio)) => fit(ratio),
+            Some(FitScreen::Device) if !Self::rotatable_fullscreen() => {
+                let (w, h) = video_ctx.display_bounds(0).unwrap().size();
+                fit(w.max(h) as f32 / w.min(h) as f32)
+            }
+            _ => None,
+        };
 
         let mut window = if Self::rotatable_fullscreen() {
             // Without this, SDL will force fullscreen mode to be portrait.
@@ -417,6 +424,13 @@ impl Window {
                 .unwrap();
             window
         };
+
+        if Self::rotatable_fullscreen() && options.fit_screen == Some(FitScreen::Device) {
+            let (w, h) = window.drawable_size();
+            let (dw, dh) = video_ctx.display_bounds(0).unwrap().size();
+            log!("Display bounds {}x{}, drawn into at {}x{} pixels.", dw, dh, w, h);
+            fitted_screen_size = fit(w.max(h) as f32 / w.min(h).max(1) as f32);
+        }
 
         if env::consts::OS == "android" {
             // Sanity check
@@ -469,6 +483,7 @@ impl Window {
             splash_image: launch_image,
             device_family,
             screen_size: fitted_screen_size,
+            logged_drawable_size: std::cell::Cell::new((0, 0)),
             screen_safe_insets: (0.0, 0.0, 0.0, 0.0),
             screen_scale: 1.0,
             hidpi_ui: false,
@@ -1792,6 +1807,11 @@ impl Window {
         }
 
         let (screen_width, screen_height) = self.window.drawable_size();
+        if self.logged_drawable_size.replace((screen_width, screen_height))
+            != (screen_width, screen_height)
+        {
+            log!("Drawing into {}x{} pixels.", screen_width, screen_height);
+        }
         let pixels_per_point = self.pixels_per_point();
 
         let app_aspect = app_width as f32 / app_height as f32;
